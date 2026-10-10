@@ -570,6 +570,24 @@
     <string name="easy_mode_status_protected">شما محافظت می‌شوید</string>
     <string name="easy_mode_status_not_protected">محافظت نمی‌شوید</string>
     <string name="easy_mode_current_server">سرور فعلی</string>
+    <string name="easy_location_title">انتخاب مکان</string>
+    <string name="easy_location_open">تغییر</string>
+    <string name="easy_location_fastest">سریع‌ترین</string>
+    <string name="easy_location_recommended">پیشنهادی</string>
+    <string name="easy_location_test_again">آزمایش دوباره</string>
+    <string name="easy_location_stop">توقف</string>
+    <string name="easy_location_testing">در حال آزمایش سرورها…</string>
+    <plurals name="easy_location_show_more">
+        <item quantity="other">نمایش %d مورد بیشتر</item>
+    </plurals>
+    <string name="easy_location_no_results">برای یافتن سریع‌ترین، آزمایش را اجرا کنید</string>
+    <string name="easy_location_unnamed">سرور بدون نام</string>
+    <string name="easy_quality_excellent">عالی</string>
+    <string name="easy_quality_good">خوب</string>
+    <string name="easy_quality_fair">متوسط</string>
+    <string name="easy_quality_poor">ضعیف</string>
+    <string name="easy_quality_unreachable">در دسترس نیست</string>
+    <string name="easy_quality_untested">آزمایش‌نشده</string>
     <string name="easy_mode_welcome_title">خوش آمدید</string>
     <string name="easy_mode_welcome_message">برای شروع، کلید دسترسی‌ای را که ارائه‌دهنده به شما داده اضافه کنید. معمولاً یک کد QR یا یک لینک است.</string>
 

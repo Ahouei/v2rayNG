@@ -32,6 +32,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -88,6 +90,12 @@ class MainViewModel(
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
+    // ---------- Easy mode location sheet ----------
+    private val _easyLocationState = MutableStateFlow(EasyLocationState())
+
+    /** Top-ranked servers of the selected group for Easy mode, keyed by GUID. */
+    internal val easyLocationState: StateFlow<EasyLocationState> = _easyLocationState.asStateFlow()
+
     // ---------- Keyword filtering ----------
     @Volatile
     private var keywordFilter: String = ""
@@ -117,7 +125,32 @@ class MainViewModel(
     init {
         collectServiceEvents()
         collectSelectedServerName()
+        collectEasyLocations()
         setupGroupTab()
+    }
+
+    /**
+     * Re-ranks the selected group's servers on Default whenever the group, its servers, or the
+     * selected server change; the selected server is always kept in the ranked rows.
+     */
+    private fun collectEasyLocations() {
+        viewModelScope.launch {
+            uiState.map { it.selectedGroupId }
+                .distinctUntilChanged()
+                .collectLatest { groupId ->
+                    combine(
+                        mutableServerGroupState(groupId).map { it.servers }.distinctUntilChanged(),
+                        uiState.map { it.selectedGuid }.distinctUntilChanged(),
+                    ) { servers, selectedGuid -> servers to selectedGuid }
+                        .collectLatest { (servers, selectedGuid) ->
+                            val (rows, fastest) = withContext(defaultDispatcher) {
+                                EasyLocationRanking.rank(servers, selectedGuid) to
+                                    EasyLocationRanking.fastestGuid(servers)
+                            }
+                            _easyLocationState.update { it.copy(rows = rows, fastestGuid = fastest) }
+                        }
+                }
+        }
     }
 
     private fun collectSelectedServerName() {
@@ -291,6 +324,17 @@ class MainViewModel(
     private fun currentServers(): List<ServersCache> =
         mutableServerGroupState(uiState.value.selectedGroupId).value.servers
 
+    /**
+     * One-shot Easy mode "Fastest" choice, resolved synchronously from the selected group's current
+     * delays so no stale coroutine can override a later manual pick. Returns the GUID to select, or
+     * null (with a message) when no server has a successful delay yet.
+     */
+    internal fun resolveFastestGuid(): String? {
+        val guid = EasyLocationRanking.fastestGuid(currentServers())
+        if (guid == null) toast(R.string.easy_location_no_results)
+        return guid
+    }
+
     // ---------- Action handler ----------
     fun onAction(action: MainAction) {
         when (action) {
@@ -335,7 +379,9 @@ class MainViewModel(
             MainAction.LocateSelectedServer,
             is MainAction.EditServer,
             is MainAction.ShareClipboard,
-            is MainAction.ShareFullContent -> {
+            is MainAction.ShareFullContent,
+            MainAction.SelectFastest,
+            is MainAction.SelectEasyServer -> {
                 // Handled by Activity via its onAction lambda
             }
         }

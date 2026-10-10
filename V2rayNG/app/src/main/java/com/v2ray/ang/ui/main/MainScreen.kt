@@ -48,7 +48,19 @@ fun MainScreen(
 ) {
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
     if (uiState.easyMode) {
-        EasyHomeScreen(state = uiState.toEasyHomeState(), onAction = onAction)
+        val locationState by mainViewModel.easyLocationState.collectAsStateWithLifecycle()
+        val testingText = when (uiState.status) {
+            MainStatus.Testing, is MainStatus.TestProgress -> mainViewModel.formatStatus(uiState.status)
+            else -> null
+        }
+        EasyHomeScreen(
+            state = uiState.toEasyHomeState(),
+            selectedGuid = uiState.selectedGuid,
+            locationState = locationState,
+            isTesting = uiState.isTesting,
+            testingText = testingText,
+            onAction = onAction,
+        )
         return
     }
     val groups = uiState.groups

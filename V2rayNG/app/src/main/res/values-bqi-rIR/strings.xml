@@ -570,6 +570,24 @@
     <string name="easy_mode_status_protected">شما محافظت ابوین</string>
     <string name="easy_mode_status_not_protected">محافظت نابوین</string>
     <string name="easy_mode_current_server">سرور ایسه</string>
+    <string name="easy_location_title">جا انتخاو کن</string>
+    <string name="easy_location_open">آلشت</string>
+    <string name="easy_location_fastest">تندترین</string>
+    <string name="easy_location_recommended">پیشنهادی</string>
+    <string name="easy_location_test_again">دوواره آزمایش کن</string>
+    <string name="easy_location_stop">واجیسن</string>
+    <string name="easy_location_testing">سرورا هونی آزمایش ابون…</string>
+    <plurals name="easy_location_show_more">
+        <item quantity="other">%d گله هنی نشووݩ بیه</item>
+    </plurals>
+    <string name="easy_location_no_results">سی پیدا کردن تندترین، آزمایش بکن</string>
+    <string name="easy_location_unnamed">سرور بی نوم</string>
+    <string name="easy_quality_excellent">عالی</string>
+    <string name="easy_quality_good">خوو</string>
+    <string name="easy_quality_fair">میونه</string>
+    <string name="easy_quality_poor">سست</string>
+    <string name="easy_quality_unreachable">دسرسی نی</string>
+    <string name="easy_quality_untested">آزمایش نوابیه</string>
     <string name="easy_mode_welcome_title">خوش اومئیت</string>
     <string name="easy_mode_welcome_message">سی شرو، کلید دسترسی که ارائه‌دهنده دا وه شما اضافه کنیت. ونیشتر یه گل کد QR یا لینکه.</string>
 

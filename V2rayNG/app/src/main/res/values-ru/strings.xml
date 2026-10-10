@@ -574,6 +574,27 @@
     <string name="easy_mode_status_protected">Вы защищены</string>
     <string name="easy_mode_status_not_protected">Не защищено</string>
     <string name="easy_mode_current_server">Текущий сервер</string>
+    <string name="easy_location_title">Выбор расположения</string>
+    <string name="easy_location_open">Изменить</string>
+    <string name="easy_location_fastest">Самый быстрый</string>
+    <string name="easy_location_recommended">Рекомендуется</string>
+    <string name="easy_location_test_again">Проверить снова</string>
+    <string name="easy_location_stop">Остановить</string>
+    <string name="easy_location_testing">Проверка серверов…</string>
+    <plurals name="easy_location_show_more">
+        <item quantity="one">Показать ещё %d</item>
+        <item quantity="few">Показать ещё %d</item>
+        <item quantity="many">Показать ещё %d</item>
+        <item quantity="other">Показать ещё %d</item>
+    </plurals>
+    <string name="easy_location_no_results">Запустите проверку, чтобы найти самый быстрый</string>
+    <string name="easy_location_unnamed">Сервер без названия</string>
+    <string name="easy_quality_excellent">Отлично</string>
+    <string name="easy_quality_good">Хорошо</string>
+    <string name="easy_quality_fair">Средне</string>
+    <string name="easy_quality_poor">Плохо</string>
+    <string name="easy_quality_unreachable">Недоступен</string>
+    <string name="easy_quality_untested">Не проверен</string>
     <string name="easy_mode_welcome_title">Добро пожаловать</string>
     <string name="easy_mode_welcome_message">Для начала добавьте ключ доступа от вашего провайдера. Обычно это QR-код или ссылка.</string>
 

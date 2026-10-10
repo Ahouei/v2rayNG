@@ -113,6 +113,8 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
                     is MainAction.SelectServer -> setSelectServer(action.guid)
+                    MainAction.SelectFastest -> selectFastestServer()
+                    is MainAction.SelectEasyServer -> setSelectServer(action.guid)
                     is MainAction.EditServer -> editServer(action.guid, action.profile)
                     is MainAction.ShareClipboard -> shareToClipboard(action.guid)
                     is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
@@ -266,6 +268,10 @@ class MainActivity : HelperBaseComponentActivity() {
             putExtra("subscriptionId", mainViewModel.uiState.value.selectedGroupId)
         }
         profileEditorLauncher.launch(intent)
+    }
+
+    private fun selectFastestServer() {
+        mainViewModel.resolveFastestGuid()?.let(::setSelectServer)
     }
 
     private fun setSelectServer(guid: String) {

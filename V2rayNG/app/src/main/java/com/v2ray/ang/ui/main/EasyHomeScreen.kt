@@ -31,12 +31,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -50,10 +54,15 @@ import com.v2ray.ang.R
  * Every operation is dispatched as a [MainAction]; this composable holds no durable state.
  */
 @Composable
-fun EasyHomeScreen(
+internal fun EasyHomeScreen(
     state: EasyHomeState,
+    selectedGuid: String?,
+    locationState: EasyLocationState,
+    isTesting: Boolean,
+    testingText: String?,
     onAction: (MainAction) -> Unit,
 ) {
+    var showLocations by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         topBar = {
             Row(
@@ -89,15 +98,32 @@ fun EasyHomeScreen(
             when (state) {
                 EasyHomeState.NoServer -> EasyNoServer(onAction = onAction)
                 is EasyHomeState.Disconnected,
-                is EasyHomeState.Connected -> EasyConnect(state = state, onAction = onAction)
+                is EasyHomeState.Connected -> EasyConnect(
+                    state = state,
+                    autoFastest = locationState.isFastestSelected(selectedGuid),
+                    onOpenLocations = { showLocations = true },
+                    onAction = onAction,
+                )
             }
         }
+    }
+    if (showLocations && state != EasyHomeState.NoServer) {
+        EasyLocationSheet(
+            state = locationState,
+            selectedGuid = selectedGuid,
+            isTesting = isTesting,
+            testingText = testingText,
+            onAction = onAction,
+            onDismiss = { showLocations = false },
+        )
     }
 }
 
 @Composable
 private fun ColumnScope.EasyConnect(
     state: EasyHomeState,
+    autoFastest: Boolean,
+    onOpenLocations: () -> Unit,
     onAction: (MainAction) -> Unit,
 ) {
     val connected = state is EasyHomeState.Connected
@@ -115,6 +141,7 @@ private fun ColumnScope.EasyConnect(
     val buttonLabel = stringResource(
         if (connected) R.string.easy_mode_connected else R.string.easy_mode_tap_to_connect
     )
+    val openLabel = stringResource(R.string.easy_location_open)
     val actionLabel = stringResource(
         if (connected) R.string.easy_mode_action_disconnect else R.string.easy_mode_action_connect
     )
@@ -166,7 +193,9 @@ private fun ColumnScope.EasyConnect(
         color = colors.surfaceContainerHigh,
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 480.dp),
+            .widthIn(max = 480.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpenLocations),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -180,12 +209,25 @@ private fun ColumnScope.EasyConnect(
                     color = colors.onSurfaceVariant,
                 )
                 Text(
-                    text = serverName,
+                    text = serverName.ifBlank { stringResource(R.string.easy_location_unnamed) },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (autoFastest) {
+                    Text(
+                        text = stringResource(R.string.easy_location_fastest),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.primary,
+                    )
+                }
             }
+            Text(
+                text = openLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.primary,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
         }
     }
 }

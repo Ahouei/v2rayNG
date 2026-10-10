@@ -45,6 +45,16 @@ fun MainUiState.toEasyHomeState(): EasyHomeState {
     return if (isRunning) EasyHomeState.Connected(name) else EasyHomeState.Disconnected(name)
 }
 
+/** Ranked rows and choice for the Easy mode "Choose location" sheet; identity is by GUID. */
+internal data class EasyLocationState(
+    val rows: List<EasyLocationRow> = emptyList(),
+    val fastestGuid: String? = null,
+) {
+    /** True only when the selected server is the current fastest one; derived, never persisted. */
+    fun isFastestSelected(selectedGuid: String?): Boolean =
+        fastestGuid != null && fastestGuid == selectedGuid
+}
+
 /**
  * All possible user interaction intents
  */
@@ -85,4 +95,10 @@ sealed interface MainAction {
     data object LocateHandled : MainAction
 
     data class SetEasyMode(val enabled: Boolean) : MainAction
+
+    /** Easy mode: use the fastest tested server; handled by the activity (may restart the service). */
+    data object SelectFastest : MainAction
+
+    /** Easy mode: pick a specific server and leave auto-fastest mode; handled by the activity. */
+    data class SelectEasyServer(val guid: String) : MainAction
 }
