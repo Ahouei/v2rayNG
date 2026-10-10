@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.v2ray.ang"
+    namespace = "com.ahouei.v2rayekai"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.v2ray.ang"
+        applicationId = "com.ahouei.v2rayekai"
         minSdk = 24
         targetSdk = 37
         versionCode = 750

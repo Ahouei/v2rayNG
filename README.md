@@ -48,6 +48,12 @@ These are debug-signed test builds. Android may ask you to allow installs from t
 
 ---
 
+## Package name
+
+v2rayEKAi uses the application ID `com.ahouei.v2rayekai` (F-Droid build: `com.ahouei.v2rayekai.fdroid`). It installs alongside the original v2rayNG (`com.v2ray.ang`) and does not migrate or read its profiles, settings or geo files; export from v2rayNG and import into v2rayEKAi if needed.
+
+---
+
 ## Supported protocols
 
 VLESS (including Reality), VMess, Trojan, Shadowsocks, Hysteria2, WireGuard, SOCKS and HTTP, plus policy groups, proxy chains and custom JSON configurations.
@@ -56,7 +62,7 @@ VLESS (including Reality), VMess, Trojan, Shadowsocks, Hysteria2, WireGuard, SOC
 
 ## Geo files
 
-- `geoip.dat` and `geosite.dat` are stored in `Android/data/com.v2ray.ang/files/assets` (the path may differ on some devices).
+- `geoip.dat` and `geosite.dat` are stored in `Android/data/com.ahouei.v2rayekai/files/assets` (the path may differ on some devices).
 - The in-app download fetches the enhanced lists from [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat). It needs a working connection.
 - The official [domain list](https://github.com/Loyalsoldier/v2ray-rules-dat) and [IP list](https://github.com/Loyalsoldier/geoip) can also be imported manually.
 - Third-party `.dat` files placed in the same folder are supported.
@@ -84,7 +90,7 @@ The CI workflow `.github/workflows/build-debug.yml` runs these exact steps and i
 
 On the Windows Subsystem for Android, grant the VPN permission with:
 ```sh
-appops set com.v2ray.ang ACTIVATE_VPN allow
+appops set com.ahouei.v2rayekai ACTIVATE_VPN allow
 ```
 
 ---
