@@ -56,6 +56,7 @@ fun MainScreen(
         EasyHomeScreen(
             state = uiState.toEasyHomeState(),
             selectedGuid = uiState.selectedGuid,
+            fastestMode = uiState.fastestMode,
             locationState = locationState,
             isTesting = uiState.isTesting,
             testingText = testingText,

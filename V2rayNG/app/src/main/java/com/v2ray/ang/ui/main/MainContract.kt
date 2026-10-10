@@ -3,6 +3,7 @@ package com.v2ray.ang.ui.main
 import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.LocateTarget
+import com.v2ray.ang.ui.base.ViewModelEvent
 
 /** Locale-neutral state formatted only when it reaches the main UI. */
 sealed interface MainStatus {
@@ -28,7 +29,9 @@ data class MainUiState(
     val doubleColumnDisplay: Boolean = false,
     val shareQRCodeBitmap: android.graphics.Bitmap? = null,
     val easyMode: Boolean = true,
-    val selectedServerName: String? = null
+    val selectedServerName: String? = null,
+    /** Persisted "Fastest" choice: when true the fastest tested server is selected automatically. */
+    val fastestMode: Boolean = true
 )
 
 /** What the Easy mode home screen shows, derived from [MainUiState]. */
@@ -96,9 +99,15 @@ sealed interface MainAction {
 
     data class SetEasyMode(val enabled: Boolean) : MainAction
 
-    /** Easy mode: use the fastest tested server; handled by the activity (may restart the service). */
+    /** Easy mode: turn on persisted auto-fastest mode; handled by the activity (may restart the service). */
     data object SelectFastest : MainAction
 
     /** Easy mode: pick a specific server and leave auto-fastest mode; handled by the activity. */
     data class SelectEasyServer(val guid: String) : MainAction
+}
+
+/** One-shot MainViewModel -> MainActivity events. */
+sealed interface MainViewModelEvent : ViewModelEvent {
+    /** Auto-fastest mode picked [guid]; the activity re-checks fresh state before applying it. */
+    data class AutoSelectServer(val guid: String) : MainViewModelEvent
 }

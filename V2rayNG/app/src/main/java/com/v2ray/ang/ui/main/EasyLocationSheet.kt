@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
 internal fun EasyLocationSheet(
     state: EasyLocationState,
     selectedGuid: String?,
+    fastestMode: Boolean,
     isTesting: Boolean,
     testingText: String?,
     onAction: (MainAction) -> Unit,
@@ -68,7 +69,7 @@ internal fun EasyLocationSheet(
     var revealed by rememberSaveable {
         mutableIntStateOf(EasyLocationRanking.initialRevealed(state.rows, selectedGuid))
     }
-    val fastestSelected = state.isFastestSelected(selectedGuid)
+    val fastestSelected = fastestMode
     val visible = EasyLocationRanking.visibleCount(revealed, state.rows.size)
     val choose: (MainAction) -> Unit = { action ->
         onAction(action)
@@ -119,7 +120,7 @@ internal fun EasyLocationSheet(
                 EasyFastestRow(
                     selected = fastestSelected,
                     hasResults = state.fastestGuid != null,
-                    enabled = state.fastestGuid != null && !isTesting,
+                    isTesting = isTesting,
                     onClick = { choose(MainAction.SelectFastest) },
                 )
             }
@@ -156,19 +157,19 @@ internal fun EasyLocationSheet(
 private fun EasyFastestRow(
     selected: Boolean,
     hasResults: Boolean,
-    enabled: Boolean,
+    isTesting: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        RadioButton(selected = selected, onClick = null, enabled = enabled)
+        RadioButton(selected = selected, onClick = null)
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(R.string.easy_location_fastest),
@@ -177,7 +178,11 @@ private fun EasyFastestRow(
             )
             Text(
                 text = stringResource(
-                    if (hasResults) R.string.easy_location_recommended else R.string.easy_location_no_results
+                    when {
+                        isTesting -> R.string.easy_location_testing
+                        hasResults -> R.string.easy_location_recommended
+                        else -> R.string.easy_location_no_results
+                    }
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

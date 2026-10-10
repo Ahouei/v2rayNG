@@ -477,53 +477,22 @@ object AngConfigManager {
             if (!Utils.isValidUrl(url)) {
                 return SubscriptionUpdateResult(failureCount = 1)
             }
-            if (!it.subscription.allowInsecureUrl) {
-                if (!Utils.isValidSubUrl(url)) {
-                    return SubscriptionUpdateResult(failureCount = 1)
-                }
-            }
-            LogUtil.i(AppConfig.TAG, url)
-            val userAgent = it.subscription.userAgent
-            val requestHeaders = it.subscription.requestHeaders
-            val proxyUsername = SettingsManager.getSocksUsername()
-            val proxyPassword = SettingsManager.getSocksPassword()
-
-            var configText = try {
-                val httpPort = SettingsManager.getHttpPort()
-                HttpUtil.getUrlContentWithUserAgent(
-                    UrlContentRequest(
-                        url = url,
-                        userAgent = userAgent,
-                        requestHeaders = requestHeaders,
-                        timeout = 15000,
-                        httpPort = httpPort,
-                        proxyUsername = proxyUsername,
-                        proxyPassword = proxyPassword
-                    )
-                )
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.ANG_PACKAGE, "Update subscription: proxy not ready or other error", e)
-                ""
-            }
-            if (configText.isEmpty()) {
-                configText = try {
-                    HttpUtil.getUrlContentWithUserAgent(
-                        UrlContentRequest(
-                            url = url,
-                            userAgent = userAgent,
-                            requestHeaders = requestHeaders
-                        )
-                    )
-                } catch (e: Exception) {
-                    LogUtil.e(AppConfig.TAG, "Update subscription: Failed to get URL content with user agent", e)
-                    ""
-                }
-            }
-            if (configText.isEmpty()) {
-                return SubscriptionUpdateResult(failureCount = 1)
-            }
-
-            val count = parseConfigViaSub(configText, it.guid, false)
+            // Secure first with automatic plain-HTTP fallback, independent of allowInsecureUrl
+            // (kept as a persisted field). The stored subscription URL is never rewritten.
+            val candidates = HttpUtil.subscriptionCandidateUrls(url)
+            val count = HttpUtil.firstSuccessfulCandidate(
+                candidates,
+                fetch = { candidate ->
+                    val target = HttpUtil.schemeAndHost(candidate)
+                    if (candidate != candidates.first()) {
+                        LogUtil.w(AppConfig.TAG, "Update subscription ${it.guid}: secure fetch failed, falling back to $target")
+                    } else {
+                        LogUtil.i(AppConfig.TAG, "Update subscription ${it.guid}: fetching $target")
+                    }
+                    fetchSubscriptionContent(candidate, it.guid, it.subscription)
+                },
+                parse = { configText -> parseConfigViaSub(configText, it.guid, false) },
+            )?.second ?: 0
             if (count > 0) {
                 it.subscription.lastUpdated = System.currentTimeMillis()
                 MmkvManager.encodeSubscription(it.guid, it.subscription)
@@ -533,13 +502,58 @@ object AngConfigManager {
                     successCount = 1
                 )
             } else {
-                // Got response but no valid configs parsed
+                // No candidate returned content that parsed to valid configs
                 return SubscriptionUpdateResult(failureCount = 1)
             }
         } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "Failed to update config via subscription", e)
+            // The exception message may embed the subscription URL (tokens), so log only its type.
+            LogUtil.e(AppConfig.TAG, "Failed to update config via subscription ${it.guid}: ${e.javaClass.simpleName}")
             return SubscriptionUpdateResult(failureCount = 1)
         }
+    }
+
+    /** Fetches [url] via the local proxy, then directly; returns "" when both attempts fail. */
+    private fun fetchSubscriptionContent(url: String, subId: String, subscription: SubscriptionItem): String {
+        // Network exception messages usually embed the full request URL (subscription tokens),
+        // so log only the operation, sub ID, scheme + host and the exception type.
+        val target = HttpUtil.schemeAndHost(url)
+        val userAgent = subscription.userAgent
+        val requestHeaders = subscription.requestHeaders
+        val proxyUsername = SettingsManager.getSocksUsername()
+        val proxyPassword = SettingsManager.getSocksPassword()
+
+        var configText = try {
+            val httpPort = SettingsManager.getHttpPort()
+            HttpUtil.getUrlContentWithUserAgent(
+                UrlContentRequest(
+                    url = url,
+                    userAgent = userAgent,
+                    requestHeaders = requestHeaders,
+                    timeout = 15000,
+                    httpPort = httpPort,
+                    proxyUsername = proxyUsername,
+                    proxyPassword = proxyPassword
+                )
+            )
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.ANG_PACKAGE, "Update subscription $subId via proxy failed for $target: ${e.javaClass.simpleName}")
+            ""
+        }
+        if (configText.isEmpty()) {
+            configText = try {
+                HttpUtil.getUrlContentWithUserAgent(
+                    UrlContentRequest(
+                        url = url,
+                        userAgent = userAgent,
+                        requestHeaders = requestHeaders
+                    )
+                )
+            } catch (e: Exception) {
+                LogUtil.e(AppConfig.TAG, "Update subscription $subId direct fetch failed for $target: ${e.javaClass.simpleName}")
+                ""
+            }
+        }
+        return configText
     }
 
     /**

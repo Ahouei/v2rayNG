@@ -9,7 +9,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.v2ray.ang.AngApplication
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
@@ -93,6 +95,7 @@ class MainActivity : HelperBaseComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel.onAction(MainAction.Initialize)
+        observeViewModelEvents()
 
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
     }
@@ -112,9 +115,9 @@ class MainActivity : HelperBaseComponentActivity() {
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
-                    is MainAction.SelectServer -> setSelectServer(action.guid)
-                    MainAction.SelectFastest -> selectFastestServer()
-                    is MainAction.SelectEasyServer -> setSelectServer(action.guid)
+                    is MainAction.SelectServer -> selectServerManually(action.guid)
+                    MainAction.SelectFastest -> mainViewModel.setFastestMode(true)
+                    is MainAction.SelectEasyServer -> selectServerManually(action.guid)
                     is MainAction.EditServer -> editServer(action.guid, action.profile)
                     is MainAction.ShareClipboard -> shareToClipboard(action.guid)
                     is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
@@ -270,8 +273,25 @@ class MainActivity : HelperBaseComponentActivity() {
         profileEditorLauncher.launch(intent)
     }
 
-    private fun selectFastestServer() {
-        mainViewModel.resolveFastestGuid()?.let(::setSelectServer)
+    private fun observeViewModelEvents() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.viewModelEvent.collect { event ->
+                    when (event) {
+                        // Re-resolved from fresh state so a manual pick made after emission wins.
+                        is MainViewModelEvent.AutoSelectServer ->
+                            if (mainViewModel.isAutoSelectCurrent(event.guid)) setSelectServer(event.guid)
+                        else -> Unit
+                    }
+                }
+            }
+        }
+    }
+
+    /** A user-chosen server leaves the persisted auto-fastest mode. */
+    private fun selectServerManually(guid: String) {
+        if (mainViewModel.uiState.value.fastestMode) mainViewModel.setFastestMode(false)
+        setSelectServer(guid)
     }
 
     private fun setSelectServer(guid: String) {

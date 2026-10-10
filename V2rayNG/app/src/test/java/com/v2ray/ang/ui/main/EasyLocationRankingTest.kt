@@ -119,4 +119,91 @@ class EasyLocationRankingTest {
         assertFalse(EasyLocationState(fastestGuid = null).isFastestSelected(null))
         assertFalse(EasyLocationState(fastestGuid = null).isFastestSelected("a"))
     }
+
+    @Test
+    fun autoSelectTargetSwitchesToFastestSuccess() {
+        val servers = listOf(server("a", 300), server("b", 80), server("c", -1))
+        assertEquals("b", EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = true, isTesting = false, easyMode = true))
+        assertEquals("b", EasyLocationRanking.autoSelectTarget(servers, null, fastestMode = true, isTesting = false, easyMode = true))
+    }
+
+    @Test
+    fun autoSelectTargetKeepsSelectionWithoutResults() {
+        val servers = listOf(server("a", 0), server("b", 0))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = true, isTesting = false, easyMode = true))
+        assertNull(EasyLocationRanking.autoSelectTarget(emptyList(), "a", fastestMode = true, isTesting = false, easyMode = true))
+    }
+
+    @Test
+    fun autoSelectTargetKeepsSelectionWhenAllFailed() {
+        val servers = listOf(server("a", -1), server("b", -1))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = true, isTesting = false, easyMode = true))
+    }
+
+    @Test
+    fun autoSelectTargetNoopWhenAlreadySelected() {
+        val servers = listOf(server("a", 50), server("b", 80))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = true, isTesting = false, easyMode = true))
+    }
+
+    @Test
+    fun autoSelectTargetWaitsWhileTesting() {
+        val servers = listOf(server("a", 300), server("b", 80))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = true, isTesting = true, easyMode = true))
+    }
+
+    @Test
+    fun autoSelectTargetOffWhenFastestModeDisabled() {
+        val servers = listOf(server("a", 300), server("b", 80))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = false, isTesting = false, easyMode = true))
+    }
+
+    @Test
+    fun autoSelectTargetOffOutsideEasyMode() {
+        val servers = listOf(server("a", 300), server("b", 80))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = true, isTesting = false, easyMode = false))
+    }
+
+    @Test
+    fun autoSelectTargetKeepsSelectionFromAnotherGroup() {
+        val servers = listOf(server("a", 300), server("b", 80))
+        assertNull(EasyLocationRanking.autoSelectTarget(servers, "other", fastestMode = true, isTesting = false, easyMode = true))
+    }
+
+    @Test
+    fun staleAutoSelectEventRejectedAfterManualPick() {
+        val servers = listOf(server("a", 300), server("b", 80))
+        // Event for "b" was emitted, then the user picked "a" manually, which turns fastest mode off.
+        assertFalse(EasyLocationRanking.autoSelectTarget(servers, "a", fastestMode = false, isTesting = false, easyMode = true) == "b")
+    }
+
+    @Test
+    fun shouldStartTestOnFastestWhenIdleWithoutResults() {
+        val untested = listOf(server("a", 0), server("b", -1))
+        assertTrue(EasyLocationRanking.shouldStartTestOnFastest(untested, enabled = true, isBulkTesting = false))
+        assertTrue(EasyLocationRanking.shouldStartTestOnFastest(emptyList(), enabled = true, isBulkTesting = false))
+    }
+
+    @Test
+    fun shouldNotStartTestOnFastestWhileTesting() {
+        val untested = listOf(server("a", 0))
+        assertFalse(EasyLocationRanking.shouldStartTestOnFastest(untested, enabled = true, isBulkTesting = true))
+    }
+
+    @Test
+    fun shouldNotStartTestOnFastestWithResults() {
+        val tested = listOf(server("a", 0), server("b", 80))
+        assertFalse(EasyLocationRanking.shouldStartTestOnFastest(tested, enabled = true, isBulkTesting = false))
+    }
+
+    @Test
+    fun shouldNotStartTestOnFastestWhenDisabled() {
+        val untested = listOf(server("a", 0))
+        assertFalse(EasyLocationRanking.shouldStartTestOnFastest(untested, enabled = false, isBulkTesting = false))
+    }
+
+    @Test
+    fun fastestModeDefaultsOnInUiState() {
+        assertTrue(MainUiState().fastestMode)
+    }
 }

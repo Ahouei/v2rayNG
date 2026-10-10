@@ -22,6 +22,8 @@ interface MainDataSource : Closeable {
     fun getDoubleColumnDisplay(): Boolean
     fun getEasyMode(): Boolean
     fun setEasyMode(enabled: Boolean)
+    fun getFastestMode(): Boolean
+    fun setFastestMode(enabled: Boolean)
     fun isGroupAllDisplayEnabled(): Boolean
 
     fun getString(resId: Int): String
