@@ -104,6 +104,21 @@ internal fun EasyHomeScreen(
                         modifier = Modifier.weight(1f),
                     )
                     GlassSurface(
+                        shape = CircleShape,
+                        elevation = 4.dp,
+                        modifier = Modifier.size(48.dp),
+                        interaction = Modifier
+                            .clickable(role = Role.Button, onClick = { onAction(MainAction.OpenConnectionSettings) }),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_settings_24dp),
+                            contentDescription = stringResource(R.string.connection_settings_open),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+                    Spacer(modifier = Modifier.size(8.dp))
+                    GlassSurface(
                         shape = GlassShapePill,
                         elevation = 4.dp,
                         modifier = Modifier

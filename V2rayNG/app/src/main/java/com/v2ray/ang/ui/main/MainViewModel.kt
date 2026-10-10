@@ -1,11 +1,14 @@
 package com.v2ray.ang.ui.main
 
 import android.app.Application
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.AutoTestNetwork
+import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.LocateTarget
@@ -19,6 +22,7 @@ import com.v2ray.ang.extension.delay
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
+import com.v2ray.ang.handler.AutoTestPolicy
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.CancellationException
@@ -27,6 +31,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,6 +136,12 @@ class MainViewModel(
 
     private val initialPageReady = CompletableDeferred<Unit>()
 
+    // ---------- Scheduled automatic test ----------
+    private val autoTestSettings = MutableStateFlow(dataSource.getAutoTestSettings())
+
+    /** elapsedRealtime of the last bulk test start (manual or automatic); main-thread only. */
+    private val lastBulkTestAt = MutableStateFlow<Long?>(null)
+
     // ---------- Live traffic ----------
     private val trafficVisible = MutableStateFlow(false)
 
@@ -147,6 +158,7 @@ class MainViewModel(
         collectSelectedServerName()
         collectEasyLocations()
         collectTrafficRequests()
+        collectAutoTestSchedule()
         setupGroupTab()
     }
 
@@ -165,6 +177,102 @@ class MainViewModel(
                     dataSource.setTrafficStatsEnabled(enabled)
                 }
         }
+    }
+
+    /**
+     * Runs the bulk real-ping test of the current group (the "Test again" path) at the configured
+     * interval while Easy mode is connected, and on a Wi-Fi <-> cellular handover when enabled.
+     * Owned by viewModelScope: it stops on disconnect, on leaving Easy mode and when the activity
+     * finishes. Coroutine delays do not hold a wake lock, so a sleeping device is never woken;
+     * waits are sliced (1 min) against elapsedRealtime, so an overdue check runs within a minute
+     * of waking. Fastest mode then applies the results through [collectEasyLocations].
+     */
+    private fun collectAutoTestSchedule() {
+        viewModelScope.launch {
+            combine(
+                uiState.map { it.isRunning && it.easyMode }.distinctUntilChanged(),
+                autoTestSettings,
+            ) { active, settings -> active to settings }
+                .distinctUntilChanged()
+                .collectLatest { (active, settings) ->
+                    if (!active || !settings.scheduleEnabled) {
+                        setNextAutoTestAt(null)
+                        return@collectLatest
+                    }
+                    try {
+                        runAutoTestSchedule(settings)
+                    } finally {
+                        setNextAutoTestAt(null)
+                    }
+                }
+        }
+    }
+
+    private suspend fun runAutoTestSchedule(settings: AutoTestSettings): Unit = coroutineScope {
+        var network: AutoTestNetwork? = null
+        launch {
+            dataSource.physicalNetwork().collect { current ->
+                val previous = network
+                network = current
+                if (AutoTestPolicy.isWifiCellularSwitch(previous, current)) {
+                    runAutoTestIfAllowed(settings, network, AutoTestPolicy.Trigger.NETWORK_CHANGE)
+                }
+            }
+        }
+        // A check that was skipped re-anchors the next one a full interval later.
+        var skipAnchor = SystemClock.elapsedRealtime()
+        lastBulkTestAt.collectLatest { last ->
+            while (true) {
+                val anchor = maxOf(last ?: skipAnchor, skipAnchor)
+                val nextAt = AutoTestPolicy.nextRunAtMillis(anchor, settings.intervalMinutes) ?: return@collectLatest
+                setNextAutoTestAt(nextAt)
+                // delay() on Main follows uptime, which stops in deep sleep; wait in short slices
+                // and re-read elapsedRealtime so an overdue check runs within a slice of waking.
+                while (true) {
+                    val remaining = nextAt - SystemClock.elapsedRealtime()
+                    if (remaining <= 0) break
+                    delay(minOf(remaining, AUTO_TEST_WAIT_SLICE_MILLIS))
+                }
+                // On RUN, testAllRealPing updates lastBulkTestAt and this block restarts.
+                when (runAutoTestIfAllowed(settings, network, AutoTestPolicy.Trigger.SCHEDULE)) {
+                    AutoTestPolicy.Decision.RUN -> Unit
+                    // Network type not known yet: retry shortly instead of re-anchoring.
+                    AutoTestPolicy.Decision.DEFER_NETWORK_UNKNOWN -> delay(AUTO_TEST_WAIT_SLICE_MILLIS)
+                    else -> skipAnchor = SystemClock.elapsedRealtime()
+                }
+            }
+        }
+    }
+
+    /** Applies [AutoTestPolicy.decide] and starts a bulk test on [AutoTestPolicy.Decision.RUN]. */
+    private fun runAutoTestIfAllowed(
+        settings: AutoTestSettings,
+        network: AutoTestNetwork?,
+        trigger: AutoTestPolicy.Trigger,
+    ): AutoTestPolicy.Decision {
+        val state = uiState.value
+        val decision = AutoTestPolicy.decide(
+            AutoTestPolicy.Inputs(
+                nowMillis = SystemClock.elapsedRealtime(),
+                lastRunMillis = lastBulkTestAt.value,
+                intervalMinutes = settings.intervalMinutes,
+                connected = state.isRunning && state.easyMode,
+                isTesting = state.isTesting,
+                batterySaver = dataSource.isPowerSaveMode(),
+                wifiOnly = settings.wifiOnly,
+                // Null until the first callback; the policy defers Wi-Fi-only checks on it.
+                network = network,
+                trigger = trigger,
+                testOnNetworkChange = settings.testOnNetworkChange,
+            )
+        )
+        LogUtil.i(AppConfig.TAG, "Auto test ($trigger, group ${state.selectedGroupId}): $decision")
+        if (decision == AutoTestPolicy.Decision.RUN) testAllRealPing()
+        return decision
+    }
+
+    private fun setNextAutoTestAt(atMillis: Long?) {
+        _easyLocationState.update { it.copy(nextAutoTestAtMillis = atMillis) }
     }
 
     /**
@@ -459,6 +567,7 @@ class MainViewModel(
             is MainAction.ShareClipboard,
             is MainAction.ShareFullContent,
             MainAction.SelectFastest,
+            MainAction.OpenConnectionSettings,
             is MainAction.SelectEasyServer -> {
                 // Handled by Activity via its onAction lambda
             }
@@ -493,6 +602,7 @@ class MainViewModel(
                 doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
             )
         }
+        autoTestSettings.value = dataSource.getAutoTestSettings()
     }
 
     // ---------- Group & server loading ----------
@@ -1002,6 +1112,7 @@ class MainViewModel(
             )
         }
         val request = testRequests.beginBulk(groupId)
+        lastBulkTestAt.value = SystemClock.elapsedRealtime()
         val message = TestServiceMessage(
             key = AppConfig.MSG_MEASURE_CONFIG_START,
             subscriptionId = groupId,
@@ -1101,5 +1212,7 @@ class MainViewModel(
 
     private companion object {
         const val TEST_RESULT_FLUSH_INTERVAL_MS = 500L
+        /** Longest single wait of the auto-test schedule; bounds the lag after deep sleep. */
+        const val AUTO_TEST_WAIT_SLICE_MILLIS = 60_000L
     }
 }

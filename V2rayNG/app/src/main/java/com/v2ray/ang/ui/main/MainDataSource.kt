@@ -1,5 +1,7 @@
 package com.v2ray.ang.ui.main
 
+import com.v2ray.ang.dto.AutoTestNetwork
+import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.SubscriptionUpdateResult
 import com.v2ray.ang.dto.TestServiceMessage
 import com.v2ray.ang.dto.entities.ProfileItem
@@ -25,6 +27,13 @@ interface MainDataSource : Closeable {
     fun getFastestMode(): Boolean
     fun setFastestMode(enabled: Boolean)
     fun isGroupAllDisplayEnabled(): Boolean
+    fun getAutoTestSettings(): AutoTestSettings
+
+    /** True while Android battery saver is on; scheduled tests are skipped then. */
+    fun isPowerSaveMode(): Boolean
+
+    /** Physical (non-VPN) network type; emits the current value on collection and on each change. */
+    fun physicalNetwork(): Flow<AutoTestNetwork>
 
     fun getString(resId: Int): String
     fun getString(resId: Int, vararg formatArgs: Any): String

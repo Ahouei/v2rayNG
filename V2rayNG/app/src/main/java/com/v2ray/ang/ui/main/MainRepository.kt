@@ -4,10 +4,17 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import com.v2ray.ang.AngApplication
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.AutoTestNetwork
+import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.RealPingResult
 import com.v2ray.ang.dto.SubscriptionUpdateResult
@@ -27,7 +34,11 @@ import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -143,6 +154,73 @@ class MainRepository(
 
     override fun isGroupAllDisplayEnabled(): Boolean =
         MmkvManager.decodeSettingsBool(AppConfig.PREF_GROUP_ALL_DISPLAY)
+
+    override fun getAutoTestSettings(): AutoTestSettings = SettingsManager.getAutoTestSettings()
+
+    override fun isPowerSaveMode(): Boolean =
+        (app.getSystemService(Context.POWER_SERVICE) as? PowerManager)?.isPowerSaveMode == true
+
+    /**
+     * Tracks networks through a request that keeps the default NOT_VPN capability, so the app's
+     * own tunnel is never reported as the device network. Wi-Fi wins when both are up.
+     */
+    override fun physicalNetwork(): Flow<AutoTestNetwork> = callbackFlow {
+        val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        if (cm == null) {
+            trySend(AutoTestNetwork.OTHER)
+            awaitClose { }
+            return@callbackFlow
+        }
+        val networks = HashMap<Network, AutoTestNetwork>()
+        fun publish() {
+            val types = synchronized(networks) { networks.values.toSet() }
+            trySend(
+                when {
+                    AutoTestNetwork.WIFI in types -> AutoTestNetwork.WIFI
+                    AutoTestNetwork.CELLULAR in types -> AutoTestNetwork.CELLULAR
+                    types.isNotEmpty() -> AutoTestNetwork.OTHER
+                    else -> AutoTestNetwork.NONE
+                }
+            )
+        }
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                val type = when {
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> AutoTestNetwork.WIFI
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> AutoTestNetwork.CELLULAR
+                    else -> AutoTestNetwork.OTHER
+                }
+                synchronized(networks) { networks[network] = type }
+                publish()
+            }
+
+            override fun onLost(network: Network) {
+                synchronized(networks) { networks.remove(network) }
+                publish()
+            }
+        }
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        try {
+            // Existing networks are delivered through the callback right after registration.
+            cm.registerNetworkCallback(request, callback)
+        } catch (e: RuntimeException) {
+            // SecurityException or TooManyRequestsException: treat the network as unknown.
+            LogUtil.e(AppConfig.TAG, "Auto test: failed to register network callback", e)
+            trySend(AutoTestNetwork.OTHER)
+            awaitClose { }
+            return@callbackFlow
+        }
+        awaitClose {
+            try {
+                cm.unregisterNetworkCallback(callback)
+            } catch (e: IllegalArgumentException) {
+                LogUtil.e(AppConfig.TAG, "Auto test: network callback already unregistered", e)
+            }
+        }
+    }.conflate().distinctUntilChanged()
 
     override fun getString(resId: Int): String = localizedContext.getString(resId)
 

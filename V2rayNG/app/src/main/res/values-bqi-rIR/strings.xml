@@ -598,5 +598,30 @@
     <string name="easy_quality_untested">آزمایش نوابیه</string>
     <string name="easy_mode_welcome_title">خوش اومئیت</string>
     <string name="easy_mode_welcome_message">سی شرو، کلید دسترسی که ارائه‌دهنده دا وه شما اضافه کنیت. ونیشتر یه گل کد QR یا لینکه.</string>
+    <string name="connection_settings_title">منپیز</string>
+    <string name="connection_settings_open">تنظیمات منپیز</string>
+    <string name="connection_auto_test_header">آزمایش خودکار</string>
+    <string name="connection_auto_test_interval">سرورا ن خودکار آزمایش بکن</string>
+    <string name="connection_interval_off">خاموش</string>
+    <plurals name="connection_interval_minutes">
+        <item quantity="other">هر %d دیقه</item>
+    </plurals>
+    <plurals name="connection_interval_hours">
+        <item quantity="other">هر %d ساعت</item>
+    </plurals>
+    <string name="connection_interval_sheet_title">فاصله آزمایش</string>
+    <string name="connection_wifi_only">تنها وا Wi-Fi</string>
+    <string name="connection_wifi_only_summary">آزمایش خودکار ن رو داده همراه رد بکن</string>
+    <string name="connection_network_change">آزمایش وختی شبکه آلشت بوئه</string>
+    <string name="connection_network_change_summary">پس ز آلشت میون Wi-Fi و داده همراه، دوباره آزمایش بکن</string>
+    <string name="connection_auto_switch_header">آلشت سرور</string>
+    <string name="connection_auto_switch">آلشت خودکار</string>
+    <string name="connection_auto_switch_summary">وختی سرور تندتری پیدا بوئه، بورو سیش</string>
+    <string name="connection_notify_switch">وختی آلشت بوئه خبر بیه</string>
+    <string name="connection_notify_switch_summary">وختی سرور آلشت بوئه، اعلان نشووݩ بیه</string>
+    <string name="connection_auto_test_note">آزمایشا تنها وختی منپیزی انجوم بوئن و وا صرفه‌جویی باتری رد بوئن.</string>
+    <plurals name="easy_location_next_check">
+        <item quantity="other">پرسی بئدی %d دیقه دیه</item>
+    </plurals>
 
 </resources>

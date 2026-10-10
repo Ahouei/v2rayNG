@@ -58,6 +58,8 @@ fun MainUiState.toEasyHomeState(): EasyHomeState {
 internal data class EasyLocationState(
     val rows: List<EasyLocationRow> = emptyList(),
     val fastestGuid: String? = null,
+    /** SystemClock.elapsedRealtime of the next scheduled automatic test, or null when none is scheduled. */
+    val nextAutoTestAtMillis: Long? = null,
 ) {
     /** True only when the selected server is the current fastest one; derived, never persisted. */
     fun isFastestSelected(selectedGuid: String?): Boolean =
@@ -113,6 +115,9 @@ sealed interface MainAction {
 
     /** Easy home became visible (started) or hidden; drives live traffic sampling in the daemon. */
     data class SetTrafficVisible(val visible: Boolean) : MainAction
+
+    /** Easy mode: open the Connection settings screen; handled by the activity. */
+    data object OpenConnectionSettings : MainAction
 }
 
 /** One-shot MainViewModel -> MainActivity events. */

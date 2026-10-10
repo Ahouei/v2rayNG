@@ -11,6 +11,7 @@ import com.v2ray.ang.AppConfig.GEOIP_PRIVATE
 import com.v2ray.ang.AppConfig.GEOSITE_PRIVATE
 import com.v2ray.ang.AppConfig.TAG_DIRECT
 import com.v2ray.ang.AppConfig.VPN
+import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.V2rayConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
@@ -579,4 +580,37 @@ object SettingsManager {
         }
     }
 
+
+    /** Reads the automatic server test and auto-switch options with their defaults. */
+    fun getAutoTestSettings(): AutoTestSettings = AutoTestSettings(
+        intervalMinutes = AutoTestSettings.normalizeInterval(
+            MmkvManager.decodeSettingsInt(
+                AppConfig.PREF_AUTO_TEST_INTERVAL, AutoTestSettings.DEFAULT_INTERVAL_MINUTES
+            )
+        ),
+        wifiOnly = MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_TEST_WIFI_ONLY, false),
+        testOnNetworkChange = MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_TEST_ON_NETWORK_CHANGE, true),
+        notifyOnSwitch = MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_SWITCH_NOTIFY, true),
+        autoSwitch = MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_SWITCH_ENABLED, true),
+    )
+
+    fun setAutoTestInterval(minutes: Int) {
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_TEST_INTERVAL, AutoTestSettings.normalizeInterval(minutes))
+    }
+
+    fun setAutoTestWifiOnly(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_TEST_WIFI_ONLY, enabled)
+    }
+
+    fun setAutoTestOnNetworkChange(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_TEST_ON_NETWORK_CHANGE, enabled)
+    }
+
+    fun setAutoSwitchNotify(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_SWITCH_NOTIFY, enabled)
+    }
+
+    fun setAutoSwitchEnabled(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_SWITCH_ENABLED, enabled)
+    }
 }

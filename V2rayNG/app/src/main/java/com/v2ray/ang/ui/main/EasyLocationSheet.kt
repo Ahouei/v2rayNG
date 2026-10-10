@@ -1,5 +1,6 @@
 package com.v2ray.ang.ui.main
 
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
+import com.v2ray.ang.extension.delay
+import com.v2ray.ang.handler.AutoTestPolicy
 import com.v2ray.ang.ui.compose.GlassShapePill
 import com.v2ray.ang.ui.compose.GlassSurface
 import com.v2ray.ang.ui.compose.GlassTokens
@@ -116,6 +120,10 @@ internal fun EasyLocationSheet(
                     onClick = { onAction(MainAction.TestRealAllServers) },
                 )
             }
+        }
+        val nextAt = state.nextAutoTestAtMillis
+        if (!isTesting && nextAt != null) {
+            NextCheckLabel(nextAtMillis = nextAt)
         }
         if (isTesting) {
             Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) {
@@ -267,6 +275,24 @@ private fun EasyLocationRowItem(
             SignalBars(level = row.bars)
         }
     }
+}
+
+/** "Next check in N min"; the clock ticks only while the sheet is shown. */
+@Composable
+private fun NextCheckLabel(nextAtMillis: Long) {
+    val now by produceState(SystemClock.elapsedRealtime(), nextAtMillis) {
+        while (true) {
+            value = SystemClock.elapsedRealtime()
+            delay(30_000L)
+        }
+    }
+    val minutes = AutoTestPolicy.minutesUntil(nextAtMillis, now).coerceAtLeast(1)
+    Text(
+        text = pluralStringResource(R.plurals.easy_location_next_check, minutes, minutes),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp),
+    )
 }
 
 /** Small glass action pill; at least 48dp tall. */
