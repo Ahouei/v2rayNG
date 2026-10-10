@@ -4,10 +4,9 @@ name: Build v2rayEKAi APK
 # with the real libv2ray core and hev-socks5-tunnel, and runs the unit tests.
 on:
   workflow_dispatch:
-  pull_request:
   push:
     branches:
-      - 'claude/**'
+      - master
 
 permissions:
   contents: read
