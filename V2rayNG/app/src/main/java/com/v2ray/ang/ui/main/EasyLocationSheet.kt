@@ -1,6 +1,7 @@
 package com.v2ray.ang.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +22,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,6 +44,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
+import com.v2ray.ang.ui.compose.GlassShapePill
+import com.v2ray.ang.ui.compose.GlassSurface
+import com.v2ray.ang.ui.compose.GlassTokens
+import com.v2ray.ang.ui.compose.LocalDarkTheme
+import com.v2ray.ang.ui.compose.colorConnectedDark
+import com.v2ray.ang.ui.compose.colorConnectedLight
 import kotlinx.coroutines.launch
 
 /**
@@ -76,7 +81,17 @@ internal fun EasyLocationSheet(
         scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    val dark = LocalDarkTheme.current
+    val glass = GlassTokens.palette(dark)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        // Translucent glass sheet; opaque enough (92%) that rows stay readable over any content.
+        containerColor = glass.base.copy(alpha = 0.92f),
+        // Not a colorScheme role, so contentColorFor() would be Unspecified (black text).
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,13 +106,15 @@ internal fun EasyLocationSheet(
                     .semantics { heading() },
             )
             if (isTesting) {
-                TextButton(onClick = { onAction(MainAction.CancelTesting) }) {
-                    Text(stringResource(R.string.easy_location_stop))
-                }
+                GlassPill(
+                    text = stringResource(R.string.easy_location_stop),
+                    onClick = { onAction(MainAction.CancelTesting) },
+                )
             } else {
-                TextButton(onClick = { onAction(MainAction.TestRealAllServers) }) {
-                    Text(stringResource(R.string.easy_location_test_again))
-                }
+                GlassPill(
+                    text = stringResource(R.string.easy_location_test_again),
+                    onClick = { onAction(MainAction.TestRealAllServers) },
+                )
             }
         }
         if (isTesting) {
@@ -140,11 +157,10 @@ internal fun EasyLocationSheet(
                         contentAlignment = Alignment.Center,
                     ) {
                         val more = EasyLocationRanking.nextPageSize(revealed, state.rows.size)
-                        OutlinedButton(
+                        GlassPill(
+                            text = pluralStringResource(R.plurals.easy_location_show_more, more, more),
                             onClick = { revealed = EasyLocationRanking.nextRevealed(revealed, state.rows.size) },
-                        ) {
-                            Text(pluralStringResource(R.plurals.easy_location_show_more, more, more))
-                        }
+                        )
                     }
                 }
             }
@@ -160,33 +176,44 @@ private fun EasyFastestRow(
     isTesting: Boolean,
     onClick: () -> Unit,
 ) {
-    Row(
+    val dark = LocalDarkTheme.current
+    val green = if (dark) colorConnectedDark else colorConnectedLight
+    GlassSurface(
+        tint = GlassTokens.greenTint(dark),
+        edgeColor = green.copy(alpha = 0.6f),
+        elevation = 6.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        interaction = Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {
-        RadioButton(selected = selected, onClick = null)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.easy_location_fastest),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = stringResource(
-                    when {
-                        isTesting -> R.string.easy_location_testing
-                        hasResults -> R.string.easy_location_recommended
-                        else -> R.string.easy_location_no_results
-                    }
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            RadioButton(selected = selected, onClick = null)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.easy_location_fastest),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(
+                        when {
+                            isTesting -> R.string.easy_location_testing
+                            hasResults -> R.string.easy_location_recommended
+                            else -> R.string.easy_location_no_results
+                        }
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
     }
 }
@@ -199,38 +226,67 @@ private fun EasyLocationRowItem(
 ) {
     val colors = MaterialTheme.colorScheme
     val qualityText = stringResource(qualityLabel(row.quality))
-    Row(
+    GlassSurface(
+        // Lightweight list row: no shadow layer.
+        elevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        interaction = Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {
-        RadioButton(selected = selected, onClick = null)
-        Text(
-            text = row.name.ifBlank { stringResource(R.string.easy_location_unnamed) },
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Column(horizontalAlignment = Alignment.End) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            RadioButton(selected = selected, onClick = null)
             Text(
-                text = qualityText,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (row.quality == SignalQuality.UNREACHABLE) colors.error else colors.onSurfaceVariant,
+                text = row.name.ifBlank { stringResource(R.string.easy_location_unnamed) },
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
-            if (row.delayMillis > 0L) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = stringResource(R.string.server_test_delay_value, row.delayMillis),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.onSurfaceVariant,
+                    text = qualityText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (row.quality == SignalQuality.UNREACHABLE) colors.error else colors.onSurfaceVariant,
                 )
+                if (row.delayMillis > 0L) {
+                    Text(
+                        text = stringResource(R.string.server_test_delay_value, row.delayMillis),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
             }
+            SignalBars(level = row.bars)
         }
-        SignalBars(level = row.bars)
+    }
+}
+
+/** Small glass action pill; at least 48dp tall. */
+@Composable
+private fun GlassPill(text: String, onClick: () -> Unit) {
+    GlassSurface(
+        shape = GlassShapePill,
+        elevation = 2.dp,
+        modifier = Modifier
+            .heightIn(min = 48.dp),
+        interaction = Modifier.clickable(role = Role.Button, onClick = onClick),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+        )
     }
 }
 

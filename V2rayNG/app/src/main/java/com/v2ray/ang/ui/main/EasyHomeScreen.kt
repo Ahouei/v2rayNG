@@ -15,20 +15,18 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -51,9 +51,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.TrafficSpeed
+import com.v2ray.ang.ui.compose.GlassBackground
+import com.v2ray.ang.ui.compose.GlassShapePill
+import com.v2ray.ang.ui.compose.GlassSurface
+import com.v2ray.ang.ui.compose.glassOuterShadow
+import com.v2ray.ang.ui.compose.GlassTokens
 import com.v2ray.ang.ui.compose.LocalDarkTheme
 import com.v2ray.ang.ui.compose.colorConnectedDark
 import com.v2ray.ang.ui.compose.colorConnectedLight
+import com.v2ray.ang.ui.compose.glassHighlight
 import com.v2ray.ang.ui.compose.onColorConnectedDark
 import com.v2ray.ang.ui.compose.onColorConnectedLight
 
@@ -79,62 +85,77 @@ internal fun EasyHomeScreen(
         onAction(MainAction.SetTrafficVisible(true))
         onStopOrDispose { onAction(MainAction.SetTrafficVisible(false)) }
     }
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { onAction(MainAction.SetEasyMode(false)) }) {
+    GlassBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            // contentColorFor(Transparent) is Unspecified, which would render text black.
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        text = stringResource(R.string.easy_mode_switch_to_pro),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    GlassSurface(
+                        shape = GlassShapePill,
+                        elevation = 4.dp,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp),
+                        interaction = Modifier
+                            .clickable(role = Role.Button, onClick = { onAction(MainAction.SetEasyMode(false)) }),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.easy_mode_switch_to_pro),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                        )
+                    }
+                }
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when (state) {
+                    EasyHomeState.NoServer -> EasyNoServer(onAction = onAction)
+                    is EasyHomeState.Disconnected,
+                    is EasyHomeState.Connected -> EasyConnect(
+                        state = state,
+                        autoFastest = fastestMode,
+                        traffic = traffic,
+                        selectedDelay = selectedDelay,
+                        onOpenLocations = { showLocations = true },
+                        onAction = onAction,
                     )
                 }
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            when (state) {
-                EasyHomeState.NoServer -> EasyNoServer(onAction = onAction)
-                is EasyHomeState.Disconnected,
-                is EasyHomeState.Connected -> EasyConnect(
-                    state = state,
-                    autoFastest = fastestMode,
-                    traffic = traffic,
-                    selectedDelay = selectedDelay,
-                    onOpenLocations = { showLocations = true },
-                    onAction = onAction,
-                )
-            }
+        if (showLocations && state != EasyHomeState.NoServer) {
+            EasyLocationSheet(
+                state = locationState,
+                selectedGuid = selectedGuid,
+                fastestMode = fastestMode,
+                isTesting = isTesting,
+                testingText = testingText,
+                onAction = onAction,
+                onDismiss = { showLocations = false },
+            )
         }
-    }
-    if (showLocations && state != EasyHomeState.NoServer) {
-        EasyLocationSheet(
-            state = locationState,
-            selectedGuid = selectedGuid,
-            fastestMode = fastestMode,
-            isTesting = isTesting,
-            testingText = testingText,
-            onAction = onAction,
-            onDismiss = { showLocations = false },
-        )
     }
 }
 
@@ -157,11 +178,13 @@ private fun ColumnScope.EasyConnect(
     val darkTheme = LocalDarkTheme.current
     val connectedColor = if (darkTheme) colorConnectedDark else colorConnectedLight
     val onConnectedColor = if (darkTheme) onColorConnectedDark else onColorConnectedLight
+    val glass = GlassTokens.palette(darkTheme)
     val buttonColor by animateColorAsState(
-        targetValue = if (connected) connectedColor else colors.surfaceVariant,
+        targetValue = if (connected) connectedColor else glass.fill,
         label = "easyConnectColor",
     )
-    val contentColor = if (connected) onConnectedColor else colors.onSurfaceVariant
+    val haloColor = if (connected) connectedColor else glass.edge
+    val contentColor = if (connected) onConnectedColor else colors.onSurface
     val buttonLabel = stringResource(
         if (connected) R.string.easy_mode_connected else R.string.easy_mode_tap_to_connect
     )
@@ -177,10 +200,19 @@ private fun ColumnScope.EasyConnect(
     Box(
         modifier = Modifier
             .size(220.dp)
-            .border(BorderStroke(16.dp, buttonColor.copy(alpha = 0.25f)), CircleShape)
+            .border(BorderStroke(16.dp, haloColor.copy(alpha = 0.25f)), CircleShape)
             .padding(16.dp)
+            .glassOuterShadow(CircleShape, haloColor, 24.dp)
             .clip(CircleShape)
             .background(buttonColor)
+            .glassHighlight(glass.highlight)
+            .border(
+                BorderStroke(
+                    1.dp,
+                    Brush.verticalGradient(listOf(glass.edge, glass.edge.copy(alpha = 0.1f))),
+                ),
+                CircleShape,
+            )
             .clickable(
                 role = Role.Button,
                 onClickLabel = actionLabel,
@@ -220,14 +252,11 @@ private fun ColumnScope.EasyConnect(
     )
     if (connected) TrafficLine(traffic)
     Spacer(modifier = Modifier.weight(1f))
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceContainerHigh,
+    GlassSurface(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 480.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpenLocations),
+            .widthIn(max = 480.dp),
+        interaction = Modifier.clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpenLocations),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -285,13 +314,17 @@ private fun TrafficLine(trafficProvider: () -> TrafficSpeed?) {
     val down = speedText(traffic.downBytesPerSec)
     val up = speedText(traffic.upBytesPerSec)
     val description = stringResource(R.string.easy_traffic_description, down, up)
-    Text(
-        text = stringResource(R.string.easy_traffic_line, down, up),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
-    )
+    GlassSurface(shape = GlassShapePill, elevation = 6.dp) {
+        Text(
+            text = stringResource(R.string.easy_traffic_line, down, up),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 10.dp)
+                .clearAndSetSemantics { contentDescription = description },
+        )
+    }
 }
 
 /** RTT plus signal bars of the selected server; failed last result shows "Not reachable". */
