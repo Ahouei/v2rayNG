@@ -85,6 +85,32 @@ internal object EasyLocationRanking {
             .minWithOrNull(compareBy<ServersCache>({ it.testDelayMillis }, { it.guid }))
             ?.guid
 
+    /**
+     * GUID the auto-fastest mode should switch to, or null to keep the current selection: null when
+     * Easy mode or the fastest mode is off, a test is still running, the current selection belongs to
+     * another group (browsing a group never overrides it), no server succeeded, or the fastest is
+     * already selected.
+     */
+    fun autoSelectTarget(
+        servers: List<ServersCache>,
+        selectedGuid: String?,
+        fastestMode: Boolean,
+        isTesting: Boolean,
+        easyMode: Boolean,
+    ): String? {
+        if (!easyMode || !fastestMode || isTesting) return null
+        if (selectedGuid != null && servers.none { it.guid == selectedGuid }) return null
+        val fastest = fastestGuid(servers) ?: return null
+        return fastest.takeIf { it != selectedGuid }
+    }
+
+    /**
+     * True when choosing "Fastest" must start a bulk real-ping test: the mode is being enabled, no
+     * bulk test is running and no server in [servers] has a successful result yet.
+     */
+    fun shouldStartTestOnFastest(servers: List<ServersCache>, enabled: Boolean, isBulkTesting: Boolean): Boolean =
+        enabled && !isBulkTesting && fastestGuid(servers) == null
+
     fun visibleCount(revealed: Int, total: Int): Int = minOf(revealed, total)
 
     fun nextRevealed(revealed: Int, total: Int): Int = minOf(revealed + PAGE_SIZE, total)

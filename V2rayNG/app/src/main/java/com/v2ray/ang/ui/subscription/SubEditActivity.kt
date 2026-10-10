@@ -84,9 +84,6 @@ class SubEditActivity : BaseComponentActivity() {
             if (!Utils.isValidUrl(subItem.url)) {
                 return false
             }
-            if (!Utils.isValidSubUrl(subItem.url) && !subItem.allowInsecureUrl) {
-                return false
-            }
         }
 
         if (subItem.autoUpdate && subItem.updateInterval < AppConfig.SUBSCRIPTION_MIN_INTERVAL_MINUTES) {
@@ -174,9 +171,8 @@ fun SubEditScreen(
                     }
                     IconButton(onClick = {
                         val remarksErr = remarks.isBlank()
-                        val urlErr = url.isNotEmpty() && (
-                            !Utils.isValidUrl(url) || (!Utils.isValidSubUrl(url) && !allowInsecureUrl)
-                        )
+                        // http:// is allowed: updates try https:// first and fall back automatically.
+                        val urlErr = url.isNotEmpty() && !Utils.isValidUrl(url)
                         val intervalErr = autoUpdate && updateInterval.toLongEx() < AppConfig.SUBSCRIPTION_MIN_INTERVAL_MINUTES
 
                         isRemarksError = remarksErr

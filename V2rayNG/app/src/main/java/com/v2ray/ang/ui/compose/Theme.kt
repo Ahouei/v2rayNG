@@ -110,6 +110,12 @@ val colorFabInactiveLight = Color(0xFF9C9C9C) // Gray
 val colorFabInactiveDark = Color(0xFF646464) // Dark Gray
 val dividerColorLight = Color(0xFFE0E0E0) // Light Gray
 val dividerColorDark = Color(0xFF424242) // Dark Gray
+// Connected state: fixed green independent of dynamic color; content contrast >= 4.5:1
+// (white on 0xFF17784B is about 5.5:1, 0xFF0B1F15 on 0xFF2FAE74 is about 6:1).
+val colorConnectedLight = Color(0xFF17784B) // Green
+val onColorConnectedLight = Color(0xFFFFFFFF) // White
+val colorConnectedDark = Color(0xFF2FAE74) // Light Green
+val onColorConnectedDark = Color(0xFF0B1F15) // Dark Green Ink
 
 // Toast Colors 85%
 val toastNormalBgLight = Color(0xD9353A3E) // Dark Gray

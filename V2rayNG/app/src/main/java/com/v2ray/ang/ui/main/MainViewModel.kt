@@ -69,6 +69,14 @@ private fun applyTestDelayResultsToRows(
     }
 }
 
+/** Selection inputs of the Easy mode auto-fastest decision, compared as one value. */
+private data class AutoSelectInputs(
+    val selectedGuid: String?,
+    val isTesting: Boolean,
+    val fastestMode: Boolean,
+    val easyMode: Boolean,
+)
+
 class MainViewModel(
     application: Application,
     private val dataSource: MainDataSource
@@ -85,7 +93,8 @@ class MainViewModel(
             selectedGuid = dataSource.getSelectServer(),
             confirmRemove = dataSource.getConfirmRemove(),
             doubleColumnDisplay = dataSource.getDoubleColumnDisplay(),
-            easyMode = dataSource.getEasyMode()
+            easyMode = dataSource.getEasyMode(),
+            fastestMode = dataSource.getFastestMode()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -130,8 +139,11 @@ class MainViewModel(
     }
 
     /**
-     * Re-ranks the selected group's servers on Default whenever the group, its servers, or the
-     * selected server change; the selected server is always kept in the ranked rows.
+     * Re-ranks the selected group's servers on Default whenever the group, its servers, the
+     * selected server, the testing flag or the fastest mode change; the selected server is always
+     * kept in the ranked rows. With Easy mode and fastest mode on and no test running, a server with a
+     * lower successful delay than the current one is sent to the activity as
+     * [MainViewModelEvent.AutoSelectServer] (see [EasyLocationRanking.autoSelectTarget]).
      */
     private fun collectEasyLocations() {
         viewModelScope.launch {
@@ -140,14 +152,22 @@ class MainViewModel(
                 .collectLatest { groupId ->
                     combine(
                         mutableServerGroupState(groupId).map { it.servers }.distinctUntilChanged(),
-                        uiState.map { it.selectedGuid }.distinctUntilChanged(),
-                    ) { servers, selectedGuid -> servers to selectedGuid }
-                        .collectLatest { (servers, selectedGuid) ->
+                        uiState.map { AutoSelectInputs(it.selectedGuid, it.isTesting, it.fastestMode, it.easyMode) }
+                            .distinctUntilChanged(),
+                    ) { servers, selection -> servers to selection }
+                        .collectLatest { (servers, selection) ->
+                            val (selectedGuid, isTesting, fastestMode, easyMode) = selection
                             val (rows, fastest) = withContext(defaultDispatcher) {
                                 EasyLocationRanking.rank(servers, selectedGuid) to
                                     EasyLocationRanking.fastestGuid(servers)
                             }
                             _easyLocationState.update { it.copy(rows = rows, fastestGuid = fastest) }
+                            val target = EasyLocationRanking.autoSelectTarget(
+                                servers, selectedGuid, fastestMode, isTesting, easyMode
+                            )
+                            if (target != null) {
+                                _viewModelEvent.send(MainViewModelEvent.AutoSelectServer(target))
+                            }
                         }
                 }
         }
@@ -325,14 +345,33 @@ class MainViewModel(
         mutableServerGroupState(uiState.value.selectedGroupId).value.servers
 
     /**
-     * One-shot Easy mode "Fastest" choice, resolved synchronously from the selected group's current
-     * delays so no stale coroutine can override a later manual pick. Returns the GUID to select, or
-     * null (with a message) when no server has a successful delay yet.
+     * Persists the Easy mode "Fastest" choice. Turning it on with no successful result and no
+     * running test starts a real-ping test; the fastest server is then applied through
+     * [MainViewModelEvent.AutoSelectServer] once results exist.
      */
-    internal fun resolveFastestGuid(): String? {
-        val guid = EasyLocationRanking.fastestGuid(currentServers())
-        if (guid == null) toast(R.string.easy_location_no_results)
-        return guid
+    fun setFastestMode(enabled: Boolean) {
+        dataSource.setFastestMode(enabled)
+        _uiState.update { it.copy(fastestMode = enabled) }
+        startFastestTestIfNeeded()
+    }
+
+    /** Starts a bulk test when Easy "Fastest" is on but no result exists and no bulk test runs. */
+    private fun startFastestTestIfNeeded() {
+        val state = uiState.value
+        if (state.easyMode && EasyLocationRanking.shouldStartTestOnFastest(
+                currentServers(), state.fastestMode, isBulkTesting = testRequests.bulk != null
+            )
+        ) {
+            testAllRealPing()
+        }
+    }
+
+    /** True when [guid] is still the auto-fastest choice for the current state (guards stale events). */
+    internal fun isAutoSelectCurrent(guid: String): Boolean {
+        val state = uiState.value
+        return EasyLocationRanking.autoSelectTarget(
+            currentServers(), state.selectedGuid, state.fastestMode, state.isTesting, state.easyMode
+        ) == guid
     }
 
     // ---------- Action handler ----------
@@ -389,6 +428,11 @@ class MainViewModel(
 
     // ---------- Initialization ----------
     fun initialize() {
+        viewModelScope.launch {
+            // With Easy "Fastest" on and no results yet, measure once the first group is loaded.
+            initialPageReady.await()
+            startFastestTestIfNeeded()
+        }
         viewModelScope.launch(preloadDispatcher) {
             try {
                 initialPageReady.await()

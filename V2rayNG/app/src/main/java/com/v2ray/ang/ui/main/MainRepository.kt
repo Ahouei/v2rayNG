@@ -129,6 +129,14 @@ class MainRepository(
         MmkvManager.encodeSettings(AppConfig.PREF_EASY_MODE, enabled)
     }
 
+    /** Easy mode "Fastest" choice; defaults to on so new users get the fastest tested server. */
+    override fun getFastestMode(): Boolean =
+        MmkvManager.decodeSettingsBool(AppConfig.PREF_EASY_FASTEST_MODE, true)
+
+    override fun setFastestMode(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_EASY_FASTEST_MODE, enabled)
+    }
+
     override fun isGroupAllDisplayEnabled(): Boolean =
         MmkvManager.decodeSettingsBool(AppConfig.PREF_GROUP_ALL_DISPLAY)
 

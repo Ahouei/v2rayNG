@@ -41,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +49,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
+import com.v2ray.ang.ui.compose.LocalDarkTheme
+import com.v2ray.ang.ui.compose.colorConnectedDark
+import com.v2ray.ang.ui.compose.colorConnectedLight
+import com.v2ray.ang.ui.compose.onColorConnectedDark
+import com.v2ray.ang.ui.compose.onColorConnectedLight
 
 /**
  * Easy mode home: one connect button, the current server, and a small way into Pro mode.
@@ -57,6 +63,7 @@ import com.v2ray.ang.R
 internal fun EasyHomeScreen(
     state: EasyHomeState,
     selectedGuid: String?,
+    fastestMode: Boolean,
     locationState: EasyLocationState,
     isTesting: Boolean,
     testingText: String?,
@@ -100,7 +107,7 @@ internal fun EasyHomeScreen(
                 is EasyHomeState.Disconnected,
                 is EasyHomeState.Connected -> EasyConnect(
                     state = state,
-                    autoFastest = locationState.isFastestSelected(selectedGuid),
+                    autoFastest = fastestMode,
                     onOpenLocations = { showLocations = true },
                     onAction = onAction,
                 )
@@ -111,6 +118,7 @@ internal fun EasyHomeScreen(
         EasyLocationSheet(
             state = locationState,
             selectedGuid = selectedGuid,
+            fastestMode = fastestMode,
             isTesting = isTesting,
             testingText = testingText,
             onAction = onAction,
@@ -133,13 +141,19 @@ private fun ColumnScope.EasyConnect(
         EasyHomeState.NoServer -> ""
     }
     val colors = MaterialTheme.colorScheme
+    val darkTheme = LocalDarkTheme.current
+    val connectedColor = if (darkTheme) colorConnectedDark else colorConnectedLight
+    val onConnectedColor = if (darkTheme) onColorConnectedDark else onColorConnectedLight
     val buttonColor by animateColorAsState(
-        targetValue = if (connected) colors.primary else colors.surfaceVariant,
+        targetValue = if (connected) connectedColor else colors.surfaceVariant,
         label = "easyConnectColor",
     )
-    val contentColor = if (connected) colors.onPrimary else colors.onSurfaceVariant
+    val contentColor = if (connected) onConnectedColor else colors.onSurfaceVariant
     val buttonLabel = stringResource(
         if (connected) R.string.easy_mode_connected else R.string.easy_mode_tap_to_connect
+    )
+    val statusLabel = stringResource(
+        if (connected) R.string.easy_mode_status_protected else R.string.easy_mode_status_not_protected
     )
     val openLabel = stringResource(R.string.easy_location_open)
     val actionLabel = stringResource(
@@ -159,7 +173,12 @@ private fun ColumnScope.EasyConnect(
                 onClickLabel = actionLabel,
                 onClick = { onAction(MainAction.ToggleService) },
             )
-            .semantics { stateDescription = buttonLabel },
+            .semantics {
+                // One node: the action as its name, the protection status as its state; the
+                // visible label below is hidden so TalkBack does not read it twice.
+                contentDescription = actionLabel
+                stateDescription = statusLabel
+            },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -175,14 +194,13 @@ private fun ColumnScope.EasyConnect(
                 color = contentColor,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clearAndSetSemantics {},
             )
         }
     }
     Spacer(modifier = Modifier.height(40.dp))
     Text(
-        text = stringResource(
-            if (connected) R.string.easy_mode_status_protected else R.string.easy_mode_status_not_protected
-        ),
+        text = statusLabel,
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,

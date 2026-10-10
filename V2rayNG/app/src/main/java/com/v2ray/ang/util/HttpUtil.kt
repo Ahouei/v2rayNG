@@ -21,6 +21,53 @@ import java.util.concurrent.TimeUnit
 
 object HttpUtil {
 
+    private const val HTTPS_PREFIX = "https://"
+    private const val HTTP_PREFIX = "http://"
+
+    /**
+     * Subscription fetch candidates, secure first: an http(s) URL yields its https:// form and
+     * then its http:// form. Any other scheme yields an empty list.
+     */
+    fun subscriptionCandidateUrls(url: String): List<String> = when {
+        url.startsWith(HTTPS_PREFIX, ignoreCase = true) ->
+            listOf(url, HTTP_PREFIX + url.substring(HTTPS_PREFIX.length))
+        url.startsWith(HTTP_PREFIX, ignoreCase = true) ->
+            listOf(HTTPS_PREFIX + url.substring(HTTP_PREFIX.length), url)
+        else -> emptyList()
+    }
+
+    /**
+     * Log-safe "scheme://host" of [url] (no user info, port, path, or query), or "invalid-url".
+     * A registry authority that java.net.URI cannot treat as a host (e.g. one with "_") is reduced
+     * to its host part by stripping user info and port.
+     */
+    fun schemeAndHost(url: String): String = try {
+        val uri = URI(url)
+        val host = uri.host ?: uri.rawAuthority?.substringAfterLast('@')?.substringBefore(':')
+        if (uri.scheme == null || host.isNullOrEmpty()) "invalid-url" else "${uri.scheme}://$host"
+    } catch (e: Exception) {
+        "invalid-url"
+    }
+
+    /**
+     * Tries [candidates] in order and returns the first candidate whose fetched content is
+     * non-empty and parses to more than zero configs, with that count; null when none does.
+     * Later candidates are fetched only after every earlier one failed.
+     */
+    fun firstSuccessfulCandidate(
+        candidates: List<String>,
+        fetch: (String) -> String,
+        parse: (String) -> Int,
+    ): Pair<String, Int>? {
+        for (candidate in candidates) {
+            val content = fetch(candidate)
+            if (content.isEmpty()) continue
+            val count = parse(content)
+            if (count > 0) return candidate to count
+        }
+        return null
+    }
+
     /**
      * Converts the domain part of a URL string to its IDN (Punycode, ASCII Compatible Encoding) format.
      *
