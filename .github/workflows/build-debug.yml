@@ -1,4 +1,4 @@
-name: Build debug APK
+name: Build v2rayEKAi APK
 
 # Builds an installable debug APK (debug-signed, no keystore secrets needed)
 # with the real libv2ray core and hev-socks5-tunnel, and runs the unit tests.
@@ -111,11 +111,11 @@ jobs:
     - name: Upload arm64-v8a debug APK
       uses: actions/upload-artifact@v7
       with:
-        name: debug-arm64-v8a
+        name: v2rayEKAi-arm64-v8a
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/playstore/debug/*arm64-v8a*.apk
 
     - name: Upload universal debug APK
       uses: actions/upload-artifact@v7
       with:
-        name: debug-universal
+        name: v2rayEKAi-universal
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/playstore/debug/*universal*.apk
