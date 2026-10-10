@@ -1,90 +1,104 @@
-# v2rayNG
+# v2rayEKAi
 
-A V2Ray client for Android, support [Xray core](https://github.com/XTLS/Xray-core) and [v2fly core](https://github.com/v2fly/v2ray-core)
+**Tap. Connect. Protected.**
 
-[![API](https://img.shields.io/badge/API-24%2B-yellow.svg?style=flat)](https://developer.android.com/about/versions/lollipop)
-[![Kotlin Version](https://img.shields.io/badge/Kotlin-2.4.0-blue.svg)](https://kotlinlang.org)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/2dust/v2rayNG)](https://github.com/2dust/v2rayNG/commits/master)
-[![CodeFactor](https://www.codefactor.io/repository/github/2dust/v2rayng/badge)](https://www.codefactor.io/repository/github/2dust/v2rayng)
-[![GitHub Releases](https://img.shields.io/github/downloads/2dust/v2rayNG/latest/total?logo=github)](https://github.com/2dust/v2rayNG/releases)
-[![Chat on Telegram](https://img.shields.io/badge/Chat%20on-Telegram-brightgreen.svg)](https://t.me/v2rayn)
+v2rayEKAi is an Android VPN client for [Xray](https://github.com/XTLS/Xray-core) and [v2fly](https://github.com/v2fly/v2ray-core). It is built for people who just want to open the app, tap once and be online, and it still keeps every advanced option for people who want them.
 
----
+It is based on [v2rayNG](https://github.com/2dust/v2rayNG) by 2dust, with a new interface, smart server selection and a new identity.
 
-## Download / 下载
-
-Download the latest release here:
-
-在这里下载最新版本：
-
-[https://github.com/2dust/v2rayNG/releases](https://github.com/2dust/v2rayNG/releases)
-
-> [!TIP]
-> v2rayNG is the mobile version. For the desktop version, please visit the v2rayN \
-> v2rayNG 是手机版，电脑版请访问 v2rayN
->
-> https://github.com/2dust/v2rayN
+[![Build v2rayEKAi APK](https://github.com/Ahouei/v2rayNG/actions/workflows/build-debug.yml/badge.svg)](https://github.com/Ahouei/v2rayNG/actions/workflows/build-debug.yml)
+![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-0E1726)
+![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-0E1726)
 
 ---
 
-### Geoip and Geosite
+## Two modes
 
-- geoip.dat and geosite.dat files are in `Android/data/com.v2ray.ang/files/assets` (path may differ on some Android device)
-- download feature will get enhanced version in this [repo](https://github.com/Loyalsoldier/v2ray-rules-dat) (note: it needs a working proxy)
-- latest official [domain list](https://github.com/Loyalsoldier/v2ray-rules-dat) and [ip list](https://github.com/Loyalsoldier/geoip) can be imported manually
-- possible to use a third-party dat file in the same folder, like [h2y](https://guide.v2fly.org/routing/sitedata.html#%E5%A4%96%E7%BD%AE%E7%9A%84%E5%9F%9F%E5%90%8D%E6%96%87%E4%BB%B6)
+### Easy mode (default)
 
-More in our [wiki](https://github.com/2dust/v2rayNG/wiki)
+For anyone who has never heard of ping, protocols or routing.
 
-### Geoip 与 Geosite
+- **One button.** Tap to connect, tap again to disconnect.
+- **Plain words.** "Not protected" or "You're protected", nothing technical.
+- **Choose location.** Tap the server card to see your servers ranked by speed, each with signal bars, a quality word (Excellent, Good, Fair, Poor) and its response time in ms.
+- **Fastest.** One tap connects to the quickest server from the latest test.
+- **Test again.** Re-tests all servers. The top 30 are ranked and shown 10 at a time.
+- **Easy start.** With no server yet, add one by scanning a QR code or pasting a link.
 
-- geoip.dat 和 geosite.dat 文件位于 `Android/data/com.v2ray.ang/files/assets`（部分设备路径可能不同）
-- 下载功能将获取该 [仓库](https://github.com/Loyalsoldier/v2ray-rules-dat) 中的增强版本（注意：此功能需要一个可用的代理）
-- 最新官方 [域名列表](https://github.com/Loyalsoldier/v2ray-rules-dat) 和 [IP 列表](https://github.com/Loyalsoldier/geoip) 可手动导入
-- 也可在同一文件夹中使用第三方 dat 文件，例如 [h2y](https://guide.v2fly.org/routing/sitedata.html#%E5%A4%96%E7%BD%AE%E7%9A%84%E5%9F%9F%E5%90%8D%E6%96%87%E4%BB%B6)
+### Pro mode
 
-更多内容请见我们的 [wiki](https://github.com/2dust/v2rayNG/wiki)
+Everything the original v2rayNG offers: the full server list, subscriptions, routing, DNS, per-app proxy, logs, backup and every core setting.
 
----
-
-## Development guide / 开发指南
-
-### Note
-
-- Android project under the V2rayNG folder can be compiled directly in Android Studio, or using the Gradle wrapper. But the v2ray core inside the aar is (probably) outdated.
-- The aar can be compiled from the Golang project [AndroidLibV2rayLite](https://github.com/2dust/AndroidLibV2rayLite) or [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite). For a quick start, read the guides for [Go Mobile](https://github.com/golang/go/wiki/Mobile) and [Makefiles for Go Developers](https://tutorialedge.net/golang/makefiles-for-go-developers/).
-- v2rayNG can run on Android Emulators. For WSA, VPN permission needs to be granted via `appops set [package name] ACTIVATE_VPN allow`.
-
-### 提示
-
-- V2rayNG 文件夹下的 Android 项目可直接在 Android Studio 中编译，或使用 Gradle wrapper 编译。但 aar 内置的 v2ray core（可能）已过时。
-- aar 可由 Golang 项目 [AndroidLibV2rayLite](https://github.com/2dust/AndroidLibV2rayLite) 或 [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite) 编译而成。快速入门可参考 [Go Mobile](https://github.com/golang/go/wiki/Mobile) 指南和 [Makefiles for Go Developers](https://tutorialedge.net/golang/makefiles-for-go-developers/)。
-- v2rayNG 可在 Android 模拟器上运行。对于 WSA，需要通过 `appops set [package name] ACTIVATE_VPN allow` 授予 VPN 权限。
+Switch to Pro with the small **Pro** button at the top of the Easy screen. Return any time with the large **Back to Easy mode** button. Switching never disconnects you.
 
 ---
 
+## Download
 
-## GPG Verification / GPG 签名校验
+Release builds are not published yet. Every push and pull request is built by GitHub Actions:
 
-Release files are signed with GPG to verify authenticity and integrity, helping prevent mirror, ISP, or CDN hijacking.
+1. Open [Actions → Build v2rayEKAi APK](https://github.com/Ahouei/v2rayNG/actions/workflows/build-debug.yml).
+2. Open the latest successful run.
+3. Under **Artifacts**, download:
+   - **v2rayEKAi-arm64-v8a** for almost every modern phone, or
+   - **v2rayEKAi-universal** if you are unsure (larger, works on any device).
+4. Unzip it and install `v2rayEKAi_<version>_<abi>.apk`.
 
-发布文件已使用 GPG 签名，可用于校验文件真实性与完整性，预防镜像站、运营商或 CDN 劫持。
+These are debug-signed test builds. Android may ask you to allow installs from this source.
 
-### Fingerprint / 公钥指纹
+---
 
-```text
-7694 5E9F 3E9A 168F 8070 F195 805D 661C
-134D FAF6 8903 C199 463C 31E5 AE90 3AE0
+## Supported protocols
+
+VLESS (including Reality), VMess, Trojan, Shadowsocks, Hysteria2, WireGuard, SOCKS and HTTP, plus policy groups, proxy chains and custom JSON configurations.
+
+---
+
+## Geo files
+
+- `geoip.dat` and `geosite.dat` are stored in `Android/data/com.v2ray.ang/files/assets` (the path may differ on some devices).
+- The in-app download fetches the enhanced lists from [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat). It needs a working connection.
+- The official [domain list](https://github.com/Loyalsoldier/v2ray-rules-dat) and [IP list](https://github.com/Loyalsoldier/geoip) can also be imported manually.
+- Third-party `.dat` files placed in the same folder are supported.
+
+---
+
+## Building from source
+
+The Android project is in the `V2rayNG/` folder and uses Kotlin, Jetpack Compose and Material 3.
+
+1. Clone with submodules:
+   ```sh
+   git clone --recursive https://github.com/Ahouei/v2rayNG.git
+   ```
+2. Install the Android SDK (platform 37, build-tools 37.0.0) and the NDK listed in `.github/workflows/build-debug.yml`.
+3. Build the tunnel library: `bash compile-hevtun.sh`, then copy `libs/` into `V2rayNG/app/`.
+4. Put `libv2ray.aar` in `V2rayNG/app/libs/`. Use the release matching the `AndroidLibXrayLite` submodule from [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite), or build it yourself with [gomobile](https://pkg.go.dev/golang.org/x/mobile/cmd/gomobile).
+5. Build and test from `V2rayNG/`:
+   ```sh
+   ./gradlew :app:testPlaystoreDebugUnitTest
+   ./gradlew :app:assemblePlaystoreDebug
+   ```
+
+The CI workflow `.github/workflows/build-debug.yml` runs these exact steps and is the reference setup.
+
+On the Windows Subsystem for Android, grant the VPN permission with:
+```sh
+appops set com.v2ray.ang ACTIVATE_VPN allow
 ```
 
 ---
 
-## Community / 社区
+## Credits
 
-Telegram Group / Telegram 群组：
+- [v2rayNG](https://github.com/2dust/v2rayNG) by 2dust and its contributors: the foundation of this app
+- [Xray-core](https://github.com/XTLS/Xray-core) and [v2fly](https://github.com/v2fly/v2ray-core): the proxy cores
+- [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite): the Android core library
+- [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel): the TUN implementation
+- [Loyalsoldier](https://github.com/Loyalsoldier): the geo rule lists
 
-[https://t.me/v2rayN](https://t.me/v2rayN)
+---
 
-Telegram Channel / Telegram 频道：
+## License
 
-[https://t.me/github_2dust](https://t.me/github_2dust)
+v2rayEKAi is free software under the [GNU General Public License v3.0](LICENSE), the same license as v2rayNG.

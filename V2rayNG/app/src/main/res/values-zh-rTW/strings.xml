@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">v2rayNG</string>
+    <string name="app_name" translatable="false">v2rayEKAi</string>
     <string name="app_widget_name">開關</string>
     <string name="app_tile_name">開關</string>
     <string name="app_tile_first_use">首次使用此功能，請使用此應用程式新增伺服器</string>
@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">請下拉重新整理！</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">v2rayNG 服務</string>
+    <string name="notification_channel_service">v2rayEKAi 服務</string>
     <string name="notification_channel_subscription_updates">訂閱更新</string>
     <string name="notification_channel_connection_checks">連線檢查</string>
     <string name="notification_action_stop_v2ray">停止</string>
@@ -558,5 +558,35 @@
     <string name="tasker_blurb_stop">停止 %1$s</string>
     <string name="connection_test_empty_message">沒有詳細資訊</string>
     <string name="value_unknown">未知</string>
+
+    <string name="easy_mode_switch_to_pro">專業</string>
+    <string name="easy_mode_back_to_easy">返回簡易模式</string>
+    <string name="easy_mode_tap_to_connect">點擊連線</string>
+    <string name="easy_mode_connected">已連線</string>
+    <string name="easy_mode_action_connect">連線</string>
+    <string name="easy_mode_action_disconnect">中斷連線</string>
+    <string name="easy_mode_status_protected">已受保護</string>
+    <string name="easy_mode_status_not_protected">未受保護</string>
+    <string name="easy_mode_current_server">目前伺服器</string>
+    <string name="easy_location_title">選擇位置</string>
+    <string name="easy_location_open">變更</string>
+    <string name="easy_location_fastest">最快</string>
+    <string name="easy_location_recommended">推薦</string>
+    <string name="easy_location_test_again">重新測試</string>
+    <string name="easy_location_stop">停止</string>
+    <string name="easy_location_testing">正在測試伺服器…</string>
+    <plurals name="easy_location_show_more">
+        <item quantity="other">再顯示 %d 個</item>
+    </plurals>
+    <string name="easy_location_no_results">執行測試以找出最快的伺服器</string>
+    <string name="easy_location_unnamed">未命名伺服器</string>
+    <string name="easy_quality_excellent">極佳</string>
+    <string name="easy_quality_good">良好</string>
+    <string name="easy_quality_fair">普通</string>
+    <string name="easy_quality_poor">較差</string>
+    <string name="easy_quality_unreachable">無法連線</string>
+    <string name="easy_quality_untested">未測試</string>
+    <string name="easy_mode_welcome_title">歡迎</string>
+    <string name="easy_mode_welcome_message">首先，新增服務商提供的存取金鑰。通常是 QR 碼或連結。</string>
 
 </resources>

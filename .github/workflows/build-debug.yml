@@ -1,14 +1,19 @@
-name: Build APK
+name: Build v2rayEKAi APK
 
+# Builds an installable debug APK (debug-signed, no keystore secrets needed)
+# with the real libv2ray core and hev-socks5-tunnel, and runs the unit tests.
 on:
   workflow_dispatch:
-    inputs:
-      release_tag:
-        required: false
-        type: string
+  push:
+    branches:
+      - master
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: build-debug-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -49,7 +54,7 @@ jobs:
       if: steps.cache-libhevtun-restore.outputs.cache-hit != 'true'
       run: |
         bash compile-hevtun.sh
-    
+
     - name: Save libhevtun
       if: steps.cache-libhevtun-restore.outputs.cache-hit != 'true'
       uses: actions/cache/save@v6
@@ -83,77 +88,33 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Decode Keystore
-      uses: timheuer/base64-to-file@v2.0.0
-      id: android_keystore
-      with:
-        fileName: "android_keystore.jks"
-        encodedString: ${{ secrets.APP_KEYSTORE_BASE64 }}
-
-    - name: Build APK
+    - name: Unit tests
       run: |
         cd ${{ github.workspace }}/V2rayNG
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
-        ./gradlew licenseFdroidReleaseReport
-        ./gradlew assembleRelease -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
-    
-    - name: Upload arm64-v8a APK
+        ./gradlew :app:testPlaystoreDebugUnitTest
+
+    - name: Build debug APK
+      run: |
+        cd ${{ github.workspace }}/V2rayNG
+        ./gradlew :app:assemblePlaystoreDebug
+
+    - name: Upload test reports
       uses: actions/upload-artifact@v7
-      if: ${{  success() }}
+      if: ${{ always() }}
       with:
-        name: arm64-v8a
-        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*arm64-v8a*.apk
+        name: unit-test-reports
+        path: ${{ github.workspace }}/V2rayNG/app/build/reports/tests/
 
-    - name: Upload armeabi-v7a APK
+    - name: Upload arm64-v8a debug APK
       uses: actions/upload-artifact@v7
-      if: ${{  success() }}
       with:
-        name: armeabi-v7a
-        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*armeabi-v7a*.apk
+        name: v2rayEKAi-arm64-v8a
+        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/playstore/debug/*arm64-v8a*.apk
 
-    - name: Upload x86 APK
+    - name: Upload universal debug APK
       uses: actions/upload-artifact@v7
-      if: ${{  success() }}
       with:
-        name: x86-apk
-        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*x86*.apk
-
-    - name: Upload universal APK
-      uses: actions/upload-artifact@v7
-      if: ${{ success() }}
-      with:
-        name: universal-apk
-        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*universal*.apk
-
-  sign-and-release:
-    needs: build
-    runs-on: ubuntu-26.04
-    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
-
-    steps:
-      - name: Download APK artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: release
-
-      - name: Sign APK files
-        run: |
-          printf '%s' "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-          KEY=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')
-          mkdir -p release-files
-
-          find release -type f -name '*.apk' | while read apk; do
-            cp "$apk" release-files/
-            gpg --batch --yes --local-user "$KEY" --detach-sign --output "release-files/$(basename "$apk").sig" "$apk"
-          done
-
-          gpg --armor --export "$KEY" > release-files/v2rayN-public-key.asc
-
-      - name: Upload APKs, signatures and public key to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          file: release-files/*
-          tag: ${{ inputs.release_tag }}
-          file_glob: true
-          prerelease: true
+        name: v2rayEKAi-universal
+        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/playstore/debug/*universal*.apk

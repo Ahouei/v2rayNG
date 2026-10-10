@@ -9,9 +9,13 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,8 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.ui.compose.LocalDarkTheme
 import com.v2ray.ang.ui.compose.QRCodeDialog
@@ -41,6 +47,22 @@ fun MainScreen(
     onNavigate: (MainDestination) -> Unit,
 ) {
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    if (uiState.easyMode) {
+        val locationState by mainViewModel.easyLocationState.collectAsStateWithLifecycle()
+        val testingText = when (uiState.status) {
+            MainStatus.Testing, is MainStatus.TestProgress -> mainViewModel.formatStatus(uiState.status)
+            else -> null
+        }
+        EasyHomeScreen(
+            state = uiState.toEasyHomeState(),
+            selectedGuid = uiState.selectedGuid,
+            locationState = locationState,
+            isTesting = uiState.isTesting,
+            testingText = testingText,
+            onAction = onAction,
+        )
+        return
+    }
     val groups = uiState.groups
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val isRunning = uiState.isRunning
@@ -151,6 +173,7 @@ fun MainScreen(
     ) {
         Scaffold(
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
+            floatingActionButtonPosition = FabPosition.Center,
             topBar = {
                 MainTopBar(
                     isLoading = isLoading,
@@ -192,7 +215,19 @@ fun MainScreen(
                     onAction = onAction
                 )
             },
-            floatingActionButton = {},
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    onClick = { onAction(MainAction.SetEasyMode(true)) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(bottom = 72.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.easy_mode_back_to_easy),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            },
         ) { innerPadding ->
             val layoutDirection = LocalLayoutDirection.current
 

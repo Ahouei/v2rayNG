@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">v2rayNG</string>
+    <string name="app_name" translatable="false">v2rayEKAi</string>
     <string name="app_widget_name">Switch</string>
     <string name="app_tile_name">Switch</string>
     <string name="app_tile_first_use">Add a profile in the app before using this feature.</string>
@@ -14,7 +14,7 @@
     <string name="pull_down_to_refresh">Please pull down to refresh!</string>
 
     <!-- Notifications -->
-    <string name="notification_channel_service">v2rayNG service</string>
+    <string name="notification_channel_service">v2rayEKAi service</string>
     <string name="notification_channel_subscription_updates">Subscription updates</string>
     <string name="notification_channel_connection_checks">Connection checks</string>
     <string name="notification_action_stop_v2ray">Stop</string>
@@ -560,5 +560,36 @@
     <string name="tasker_blurb_stop">Stop %1$s</string>
     <string name="connection_test_empty_message">no details available</string>
     <string name="value_unknown">unknown</string>
+
+    <string name="easy_mode_switch_to_pro">Pro</string>
+    <string name="easy_mode_back_to_easy">Back to Easy mode</string>
+    <string name="easy_mode_tap_to_connect">Tap to connect</string>
+    <string name="easy_mode_connected">Connected</string>
+    <string name="easy_mode_action_connect">Connect</string>
+    <string name="easy_mode_action_disconnect">Disconnect</string>
+    <string name="easy_mode_status_protected">You\'re protected</string>
+    <string name="easy_mode_status_not_protected">Not protected</string>
+    <string name="easy_mode_current_server">Current server</string>
+    <string name="easy_location_title">Choose location</string>
+    <string name="easy_location_open">Change</string>
+    <string name="easy_location_fastest">Fastest</string>
+    <string name="easy_location_recommended">Recommended</string>
+    <string name="easy_location_test_again">Test again</string>
+    <string name="easy_location_stop">Stop</string>
+    <string name="easy_location_testing">Testing servers…</string>
+    <plurals name="easy_location_show_more">
+        <item quantity="one">Show %d more</item>
+        <item quantity="other">Show %d more</item>
+    </plurals>
+    <string name="easy_location_no_results">Run a test to find the fastest</string>
+    <string name="easy_location_unnamed">Unnamed server</string>
+    <string name="easy_quality_excellent">Excellent</string>
+    <string name="easy_quality_good">Good</string>
+    <string name="easy_quality_fair">Fair</string>
+    <string name="easy_quality_poor">Poor</string>
+    <string name="easy_quality_unreachable">Not reachable</string>
+    <string name="easy_quality_untested">Untested</string>
+    <string name="easy_mode_welcome_title">Welcome</string>
+    <string name="easy_mode_welcome_message">To start, add the access key your provider gave you. It\'s usually a QR code or a link.</string>
 
 </resources>
