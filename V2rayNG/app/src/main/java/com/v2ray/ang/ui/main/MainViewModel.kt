@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -81,7 +82,8 @@ class MainViewModel(
             selectedGroupId = dataSource.getSelectedSubscriptionId(),
             selectedGuid = dataSource.getSelectServer(),
             confirmRemove = dataSource.getConfirmRemove(),
-            doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
+            doubleColumnDisplay = dataSource.getDoubleColumnDisplay(),
+            easyMode = dataSource.getEasyMode()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -114,7 +116,25 @@ class MainViewModel(
     // ---------- Service events ----------
     init {
         collectServiceEvents()
+        collectSelectedServerName()
         setupGroupTab()
+    }
+
+    private fun collectSelectedServerName() {
+        viewModelScope.launch {
+            uiState.map { it.selectedGuid }
+                .distinctUntilChanged()
+                .collect { guid ->
+                    val name = if (guid.isNullOrEmpty()) {
+                        null
+                    } else {
+                        withContext(ioDispatcher) { dataSource.decodeServerConfig(guid)?.remarks }
+                    }
+                    _uiState.update { state ->
+                        if (state.selectedGuid == guid) state.copy(selectedServerName = name) else state
+                    }
+                }
+        }
     }
 
     private fun collectServiceEvents() {
@@ -294,6 +314,11 @@ class MainViewModel(
             is MainAction.ShareQRCode -> {
                 val bitmap = dataSource.share2QRCode(action.guid)
                 _uiState.update { it.copy(shareQRCodeBitmap = bitmap) }
+            }
+
+            is MainAction.SetEasyMode -> {
+                dataSource.setEasyMode(action.enabled)
+                _uiState.update { it.copy(easyMode = action.enabled) }
             }
 
             MainAction.DismissQRCodeDialog -> {

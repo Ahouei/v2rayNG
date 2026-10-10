@@ -561,4 +561,16 @@
     <string name="connection_test_empty_message">no details available</string>
     <string name="value_unknown">unknown</string>
 
+    <string name="easy_mode_switch_to_pro">Pro</string>
+    <string name="easy_mode_back_to_easy">Back to Easy mode</string>
+    <string name="easy_mode_tap_to_connect">Tap to connect</string>
+    <string name="easy_mode_connected">Connected</string>
+    <string name="easy_mode_action_connect">Connect</string>
+    <string name="easy_mode_action_disconnect">Disconnect</string>
+    <string name="easy_mode_status_protected">You\'re protected</string>
+    <string name="easy_mode_status_not_protected">Not protected</string>
+    <string name="easy_mode_current_server">Current server</string>
+    <string name="easy_mode_welcome_title">Welcome</string>
+    <string name="easy_mode_welcome_message">To start, add the access key your provider gave you. It\'s usually a QR code or a link.</string>
+
 </resources>

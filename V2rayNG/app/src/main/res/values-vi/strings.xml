@@ -559,4 +559,16 @@
     <string name="connection_test_empty_message">không có thông tin chi tiết</string>
     <string name="value_unknown">không xác định</string>
 
+    <string name="easy_mode_switch_to_pro">Pro</string>
+    <string name="easy_mode_back_to_easy">Về chế độ Dễ dùng</string>
+    <string name="easy_mode_tap_to_connect">Chạm để kết nối</string>
+    <string name="easy_mode_connected">Đã kết nối</string>
+    <string name="easy_mode_action_connect">Kết nối</string>
+    <string name="easy_mode_action_disconnect">Ngắt kết nối</string>
+    <string name="easy_mode_status_protected">Bạn đang được bảo vệ</string>
+    <string name="easy_mode_status_not_protected">Chưa được bảo vệ</string>
+    <string name="easy_mode_current_server">Máy chủ hiện tại</string>
+    <string name="easy_mode_welcome_title">Chào mừng</string>
+    <string name="easy_mode_welcome_message">Để bắt đầu, hãy thêm khóa truy cập mà nhà cung cấp đã đưa cho bạn. Thường là mã QR hoặc một liên kết.</string>
+
 </resources>

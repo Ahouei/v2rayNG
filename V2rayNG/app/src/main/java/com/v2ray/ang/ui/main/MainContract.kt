@@ -26,8 +26,24 @@ data class MainUiState(
     val locateTarget: LocateTarget? = null,
     val confirmRemove: Boolean = false,
     val doubleColumnDisplay: Boolean = false,
-    val shareQRCodeBitmap: android.graphics.Bitmap? = null
+    val shareQRCodeBitmap: android.graphics.Bitmap? = null,
+    val easyMode: Boolean = true,
+    val selectedServerName: String? = null
 )
+
+/** What the Easy mode home screen shows, derived from [MainUiState]. */
+sealed interface EasyHomeState {
+    /** No server is selected, so the user must add one before connecting. */
+    data object NoServer : EasyHomeState
+    data class Disconnected(val serverName: String) : EasyHomeState
+    data class Connected(val serverName: String) : EasyHomeState
+}
+
+fun MainUiState.toEasyHomeState(): EasyHomeState {
+    if (selectedGuid.isNullOrEmpty()) return EasyHomeState.NoServer
+    val name = selectedServerName.orEmpty()
+    return if (isRunning) EasyHomeState.Connected(name) else EasyHomeState.Disconnected(name)
+}
 
 /**
  * All possible user interaction intents
@@ -67,4 +83,6 @@ sealed interface MainAction {
     data class ImportBatchConfig(val configText: String) : MainAction
 
     data object LocateHandled : MainAction
+
+    data class SetEasyMode(val enabled: Boolean) : MainAction
 }

@@ -559,4 +559,16 @@
     <string name="connection_test_empty_message">沒有詳細資訊</string>
     <string name="value_unknown">未知</string>
 
+    <string name="easy_mode_switch_to_pro">專業</string>
+    <string name="easy_mode_back_to_easy">返回簡易模式</string>
+    <string name="easy_mode_tap_to_connect">點擊連線</string>
+    <string name="easy_mode_connected">已連線</string>
+    <string name="easy_mode_action_connect">連線</string>
+    <string name="easy_mode_action_disconnect">中斷連線</string>
+    <string name="easy_mode_status_protected">已受保護</string>
+    <string name="easy_mode_status_not_protected">未受保護</string>
+    <string name="easy_mode_current_server">目前伺服器</string>
+    <string name="easy_mode_welcome_title">歡迎</string>
+    <string name="easy_mode_welcome_message">首先，新增服務商提供的存取金鑰。通常是 QR 碼或連結。</string>
+
 </resources>
