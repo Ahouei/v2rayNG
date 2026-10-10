@@ -598,6 +598,11 @@
     <string name="easy_quality_untested">পরীক্ষা করা হয়নি</string>
     <string name="easy_mode_welcome_title">স্বাগতম</string>
     <string name="easy_mode_welcome_message">শুরু করতে, আপনার প্রদানকারীর দেওয়া অ্যাক্সেস কী যোগ করুন। সাধারণত এটি একটি QR কোড বা লিঙ্ক।</string>
+    <string name="easy_mode_scan_qr">QR কোড স্ক্যান করুন</string>
+    <string name="easy_mode_paste_link">লিংক পেস্ট করুন</string>
+    <string name="easy_mode_open_file">একটি ফাইল খুলুন</string>
+    <string name="easy_mode_clipboard_found">ক্লিপবোর্ডে একটি লিংক পাওয়া গেছে</string>
+    <string name="easy_mode_clipboard_add">যোগ করুন</string>
     <string name="connection_settings_title">সংযোগ</string>
     <string name="connection_settings_open">সংযোগ সেটিংস</string>
     <string name="connection_auto_test_header">স্বয়ংক্রিয় পরীক্ষা</string>

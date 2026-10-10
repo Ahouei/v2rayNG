@@ -69,6 +69,7 @@ fun MainScreen(
             traffic = { trafficState.value },
             selectedDelay = selectedDelay,
             autoSwitchNotice = autoSwitchNotice,
+            clipboardLinkFound = uiState.clipboardLinkFound,
             onAction = onAction,
         )
         return

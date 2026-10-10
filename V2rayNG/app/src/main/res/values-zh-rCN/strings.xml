@@ -596,6 +596,11 @@
     <string name="easy_quality_untested">未测试</string>
     <string name="easy_mode_welcome_title">欢迎</string>
     <string name="easy_mode_welcome_message">首先，添加服务商提供的访问密钥。通常是二维码或链接。</string>
+    <string name="easy_mode_scan_qr">扫描二维码</string>
+    <string name="easy_mode_paste_link">粘贴链接</string>
+    <string name="easy_mode_open_file">打开文件</string>
+    <string name="easy_mode_clipboard_found">在剪贴板中发现链接</string>
+    <string name="easy_mode_clipboard_add">添加</string>
     <string name="connection_settings_title">连接</string>
     <string name="connection_settings_open">连接设置</string>
     <string name="connection_auto_test_header">自动测试</string>

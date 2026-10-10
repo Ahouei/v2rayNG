@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,9 +48,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +90,7 @@ internal fun EasyHomeScreen(
     traffic: () -> TrafficSpeed?,
     selectedDelay: Long?,
     autoSwitchNotice: AutoSwitchNotice?,
+    clipboardLinkFound: Boolean,
     onAction: (MainAction) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -179,7 +184,18 @@ internal fun EasyHomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 when (state) {
-                    EasyHomeState.NoServer -> EasyNoServer(onAction = onAction)
+                    // Scrollable so large font/display sizes, landscape and short screens keep every action reachable;
+                    // the min height from weight(1f) lets Arrangement.Center keep the content centred when it fits.
+                    EasyHomeState.NoServer -> Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        EasyNoServer(clipboardLinkFound = clipboardLinkFound, onAction = onAction)
+                    }
                     is EasyHomeState.Disconnected,
                     is EasyHomeState.Connected -> EasyConnect(
                         state = state,
@@ -404,10 +420,10 @@ private fun ServerLatency(delayMillis: Long) {
 }
 
 @Composable
-private fun ColumnScope.EasyNoServer(
+private fun EasyNoServer(
+    clipboardLinkFound: Boolean,
     onAction: (MainAction) -> Unit,
 ) {
-    Spacer(modifier = Modifier.weight(1f))
     Text(
         text = stringResource(R.string.easy_mode_welcome_title),
         style = MaterialTheme.typography.headlineMedium,
@@ -422,6 +438,13 @@ private fun ColumnScope.EasyNoServer(
         textAlign = TextAlign.Center,
     )
     Spacer(modifier = Modifier.height(32.dp))
+    if (clipboardLinkFound) {
+        // Polite live region so TalkBack announces the suggestion when it appears above focused buttons.
+        Box(modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+            ClipboardLinkCard(onAdd = { onAction(MainAction.ImportClipboardSuggestion) })
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
     Button(
         onClick = { onAction(MainAction.ImportQRcode) },
         modifier = Modifier
@@ -431,7 +454,7 @@ private fun ColumnScope.EasyNoServer(
     ) {
         Icon(painterResource(R.drawable.ic_scan_24dp), contentDescription = null)
         Spacer(modifier = Modifier.size(8.dp))
-        Text(stringResource(R.string.menu_item_import_config_qrcode))
+        Text(stringResource(R.string.easy_mode_scan_qr))
     }
     Spacer(modifier = Modifier.height(12.dp))
     OutlinedButton(
@@ -443,9 +466,63 @@ private fun ColumnScope.EasyNoServer(
     ) {
         Icon(painterResource(R.drawable.ic_copy), contentDescription = null)
         Spacer(modifier = Modifier.size(8.dp))
-        Text(stringResource(R.string.menu_item_import_config_clipboard))
+        Text(stringResource(R.string.easy_mode_paste_link))
     }
-    Spacer(modifier = Modifier.weight(1f))
+    Spacer(modifier = Modifier.height(12.dp))
+    OutlinedButton(
+        onClick = { onAction(MainAction.ImportConfigLocal) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 360.dp)
+            .height(56.dp),
+    ) {
+        Icon(painterResource(R.drawable.ic_file_24dp), contentDescription = null)
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(stringResource(R.string.easy_mode_open_file))
+    }
+}
+
+/** Glass suggestion card: one focusable button node that imports the clipboard link. */
+@Composable
+private fun ClipboardLinkCard(onAdd: () -> Unit) {
+    val dark = LocalDarkTheme.current
+    val green = if (dark) colorConnectedDark else colorConnectedLight
+    val addLabel = stringResource(R.string.easy_mode_clipboard_add)
+    GlassSurface(
+        elevation = 6.dp,
+        edgeColor = green.copy(alpha = 0.6f),
+        tint = green.copy(alpha = 0.10f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 360.dp),
+        interaction = Modifier.clickable(role = Role.Button, onClickLabel = addLabel, onClick = onAdd),
+    ) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_copy),
+                contentDescription = null,
+                tint = green,
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Text(
+                text = stringResource(R.string.easy_mode_clipboard_found),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(
+                text = addLabel,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = green,
+            )
+        }
+    }
 }
 
 /** Localized text of an automatic-switch message; an empty name falls back to "Unnamed server". */

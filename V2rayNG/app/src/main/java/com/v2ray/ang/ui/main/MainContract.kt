@@ -36,6 +36,8 @@ data class MainUiState(
     /** Live throughput of the running tunnel; null while disconnected or before the first sample. */
     /** Latest connected-server measurement, tied to the GUID it was taken for. */
     val currentServerDelay: ServerDelay? = null,
+    /** Easy first launch: the clipboard looked importable at the last focused resume; never holds the text. */
+    val clipboardLinkFound: Boolean = false,
 )
 
 /** One delay measurement identified by server GUID: `< 0` failed, `> 0` round-trip ms. */
@@ -122,6 +124,9 @@ sealed interface MainAction {
 
     /** Undo of an automatic switch: pins [previousGuid] (Fastest off); handled by the activity. */
     data class UndoAutoSwitch(val previousGuid: String) : MainAction
+
+    /** Easy first launch: import the link found on the clipboard; handled by the activity. */
+    data object ImportClipboardSuggestion : MainAction
 
     /** The automatic-switch message was shown and dismissed without Undo. */
     data object DismissAutoSwitchNotice : MainAction

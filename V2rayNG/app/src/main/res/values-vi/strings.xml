@@ -596,6 +596,11 @@
     <string name="easy_quality_untested">Chưa kiểm tra</string>
     <string name="easy_mode_welcome_title">Chào mừng</string>
     <string name="easy_mode_welcome_message">Để bắt đầu, hãy thêm khóa truy cập mà nhà cung cấp đã đưa cho bạn. Thường là mã QR hoặc một liên kết.</string>
+    <string name="easy_mode_scan_qr">Quét mã QR</string>
+    <string name="easy_mode_paste_link">Dán liên kết</string>
+    <string name="easy_mode_open_file">Mở tệp</string>
+    <string name="easy_mode_clipboard_found">Đã tìm thấy liên kết trong bộ nhớ tạm</string>
+    <string name="easy_mode_clipboard_add">Thêm</string>
     <string name="connection_settings_title">Kết nối</string>
     <string name="connection_settings_open">Cài đặt kết nối</string>
     <string name="connection_auto_test_header">Kiểm tra tự động</string>

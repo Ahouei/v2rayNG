@@ -1,5 +1,7 @@
 package com.v2ray.ang.ui.main
 
+import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
@@ -51,6 +53,7 @@ import com.v2ray.ang.ui.userasset.UserAssetActivity
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -111,6 +114,10 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.TestCurrentServer -> handleLayoutTestClick()
                     MainAction.ImportQRcode -> importQRcode()
                     MainAction.ImportClipboard -> importClipboard()
+                    MainAction.ImportClipboardSuggestion -> {
+                        mainViewModel.setClipboardLinkFound(false)
+                        importClipboard()
+                    }
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
@@ -232,6 +239,70 @@ class MainActivity : HelperBaseComponentActivity() {
             }
         }
     }
+
+    private var clipboardCheckJob: Job? = null
+
+    /** Identity of the clip last checked, so an unchanged clip is not re-read on every focus gain. */
+    private var lastCheckedClipKey: Long? = null
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Android 10+ returns clipboard data only to the focused app, so check on focus gain only.
+        if (hasFocus) checkClipboardForLink()
+    }
+
+    /**
+     * Easy first launch: when no server exists, offers to import a link found on the clipboard.
+     * Only the importable/not verdict reaches the ViewModel; the text is never stored or logged.
+     * The clip content is read only when its description identity changed (reading the description
+     * does not trigger the Android 12+ paste toast).
+     */
+    private fun checkClipboardForLink() {
+        val state = mainViewModel.uiState.value
+        if (!state.easyMode || state.toEasyHomeState() != EasyHomeState.NoServer) {
+            lastCheckedClipKey = null
+            mainViewModel.setClipboardLinkFound(false)
+            return
+        }
+        val clip = try {
+            val clipboard = getSystemService(ClipboardManager::class.java)
+            val description = clipboard?.primaryClipDescription
+            if (description == null || !description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) &&
+                !description.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST)
+            ) {
+                lastCheckedClipKey = null
+                null
+            } else {
+                val key = clipIdentity(description)
+                if (key != null && key == lastCheckedClipKey) return
+                lastCheckedClipKey = key
+                clipboard.primaryClip
+            }
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Easy first launch: failed to read clipboard for link check", e)
+            null
+        }
+        clipboardCheckJob?.cancel()
+        clipboardCheckJob = lifecycleScope.launch {
+            val found = withContext(Dispatchers.Default) {
+                val text = try {
+                    clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
+                } catch (e: Exception) {
+                    LogUtil.e(AppConfig.TAG, "Easy first launch: failed to read clipboard item for link check", e)
+                    null
+                }
+                ClipboardLinkDetector.looksImportable(text)
+            }
+            mainViewModel.setClipboardLinkFound(found)
+        }
+    }
+
+    /**
+     * Stable identity of the current clip from its description. ClipDescription.getTimestamp exists on
+     * API 26+; below that there is no paste toast (added in Android 12), so returning null re-reads.
+     */
+    private fun clipIdentity(description: ClipDescription): Long? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) description.timestamp else null
 
     private fun importClipboard() {
         try {

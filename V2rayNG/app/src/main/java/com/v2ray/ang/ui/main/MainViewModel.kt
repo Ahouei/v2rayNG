@@ -713,6 +713,7 @@ class MainViewModel(
             MainAction.TestCurrentServer,
             MainAction.ImportQRcode,
             MainAction.ImportClipboard,
+            MainAction.ImportClipboardSuggestion,
             MainAction.ImportConfigLocal,
             is MainAction.ImportManually,
             MainAction.RestartService,
@@ -926,9 +927,14 @@ class MainViewModel(
     }
 
     // ---------- Business actions (coroutine-based) ----------
+    /** Records whether the clipboard looked importable; only the verdict is kept, never the text. */
+    fun setClipboardLinkFound(found: Boolean) {
+        _uiState.update { if (it.clipboardLinkFound == found) it else it.copy(clipboardLinkFound = found) }
+    }
+
     private fun importBatchConfig(configText: String) {
         launchLoading {
-            withContext(ioDispatcher) {
+            val imported = withContext(ioDispatcher) {
                 try {
                     val (count, countSub) = dataSource.importBatchConfig(
                         configText, uiState.value.selectedGroupId, true
@@ -937,17 +943,31 @@ class MainViewModel(
                         count > 0 -> {
                             toast(dataSource.getString(R.string.title_import_config_count, count))
                             setupGroupTab(forceRefresh = true)
+                            true
                         }
 
-                        countSub > 0 -> setupGroupTab(forceRefresh = true)
-                        else -> toastError(R.string.toast_failure)
+                        countSub > 0 -> {
+                            setupGroupTab(forceRefresh = true)
+                            true
+                        }
+                        else -> {
+                            toastError(R.string.toast_failure)
+                            false
+                        }
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (e: Exception) {
                     LogUtil.e(AppConfig.TAG, "Failed to import batch config", e)
                     toastError(R.string.toast_failure)
+                    false
                 }
+            }
+            if (imported) {
+                setClipboardLinkFound(false)
+                // Easy "Fastest": measure the new servers once loaded so the user can connect right away.
+                setupGroupJob?.join()
+                startFastestTestIfNeeded()
             }
         }
     }
