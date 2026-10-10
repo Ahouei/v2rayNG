@@ -101,6 +101,33 @@ object GlassTokens {
         return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
     }
 
+    /**
+     * Glossy green-to-blue gradient stops of the Pro mode "Back to Easy mode" pill. White label
+     * text must reach WCAG AA (4.5:1) on every stop; see GlassTokensTest.
+     */
+    fun easyPillGradient(dark: Boolean): List<Color> =
+        if (dark) listOf(Color(0xFF1E7A52), Color(0xFF1F5FBF)) else listOf(colorConnectedLight, Color(0xFF1D4ED8))
+
+    /** Top alpha of the white gloss on the "Back to Easy mode" pill. */
+    const val EASY_PILL_GLOSS_TOP_ALPHA = 0.18f
+
+    /** Height fraction where the pill gloss has fully faded; the centred label starts below it. */
+    const val EASY_PILL_GLOSS_END = 0.3f
+
+    /** Conservative top edge (height fraction) of the pill label used for the contrast check. */
+    const val EASY_PILL_LABEL_TOP = 0.25f
+
+    /** Gloss alpha at [fraction] of the pill height (linear fade to 0 at [EASY_PILL_GLOSS_END]). */
+    fun easyPillGlossAlphaAt(fraction: Float): Float =
+        if (fraction >= EASY_PILL_GLOSS_END) 0f
+        else EASY_PILL_GLOSS_TOP_ALPHA * (1f - fraction / EASY_PILL_GLOSS_END)
+
+    /** Protocol tag text: darker (light) or lighter (dark) orange to reach 4.5:1 on the tinted glass. */
+    fun protocolTagText(dark: Boolean): Color = if (dark) Color(0xFFFFB066) else Color(0xFF7A3800)
+
+    /** Protocol tag background tint over the glass fill. */
+    val protocolTagTint: Color = colorConfigType.copy(alpha = 0.14f)
+
     /** Backdrop blur through RenderEffect exists only on Android 12 (API 31) and newer. */
     fun supportsBlur(sdkInt: Int): Boolean = sdkInt >= Build.VERSION_CODES.S
 }
@@ -111,6 +138,7 @@ fun isGlassBlurSupported(): Boolean = GlassTokens.supportsBlur(Build.VERSION.SDK
 
 val GlassShapeLarge = RoundedCornerShape(28.dp)
 val GlassShapePill = RoundedCornerShape(percent = 50)
+val GlassShapeRow = RoundedCornerShape(20.dp)
 
 /**
  * Soft "living" backdrop: layered radial glows over an off-white (light) or deep ink (dark) base.
@@ -181,7 +209,12 @@ fun GlassSurface(
 ) {
     val palette = GlassTokens.palette(dark)
     val edge = edgeColor ?: palette.edge
-    val edgeBrush = remember(edge) { Brush.verticalGradient(listOf(edge, edge.copy(alpha = 0.2f))) }
+    // A caller-provided edge (selection) is a solid 2dp stroke so it keeps 3:1 non-text contrast
+    // all round; the default glass edge fades downward.
+    val border = remember(edge, edgeColor != null) {
+        if (edgeColor != null) BorderStroke(2.dp, edge)
+        else BorderStroke(1.dp, Brush.verticalGradient(listOf(edge, edge.copy(alpha = 0.2f))))
+    }
     Box(
         modifier = modifier
             .then(if (elevation > 0.dp) Modifier.glassOuterShadow(shape, palette.shadow, elevation) else Modifier)
@@ -189,7 +222,7 @@ fun GlassSurface(
             .background(palette.fill)
             .background(tint)
             .glassHighlight(palette.highlight)
-            .border(BorderStroke(1.dp, edgeBrush), shape)
+            .border(border, shape)
             .then(interaction),
         content = content,
     )

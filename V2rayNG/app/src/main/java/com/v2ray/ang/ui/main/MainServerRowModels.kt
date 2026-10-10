@@ -59,3 +59,10 @@ private fun serverProtocolDescription(profile: ProfileItem): String {
     }
     return parts.joinToString(" / ")
 }
+
+/**
+ * Short protocol label for the Pro mode glass row tag: the first segment of [typeDescription]
+ * (e.g. "VLESS" from "VLESS / ws / tls"), upper-cased; empty when there is none.
+ */
+internal fun serverProtocolTag(typeDescription: String): String =
+    typeDescription.substringBefore(" / ").trim().uppercase()

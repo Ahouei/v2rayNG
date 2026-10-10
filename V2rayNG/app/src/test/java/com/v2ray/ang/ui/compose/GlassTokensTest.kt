@@ -1,6 +1,7 @@
 package com.v2ray.ang.ui.compose
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -47,5 +48,39 @@ class GlassTokensTest {
     fun contrastRatioBounds() {
         assertEquals(21.0, GlassTokens.contrastRatio(Color.Black, Color.White), 0.01)
         assertEquals(1.0, GlassTokens.contrastRatio(Color.White, Color.White), 0.001)
+    }
+
+    @Test
+    fun easyPillWhiteLabelContrastOnEveryStop() {
+        for (dark in listOf(false, true)) {
+            val stops = GlassTokens.easyPillGradient(dark)
+            assertEquals(2, stops.size)
+            for (stop in stops) {
+                assertTrue(GlassTokens.contrastRatio(Color.White, stop) >= 4.5, "stop $stop dark=$dark")
+            }
+        }
+    }
+
+    @Test
+    fun easyPillWhiteLabelContrastUnderGloss() {
+        val alpha = GlassTokens.easyPillGlossAlphaAt(GlassTokens.EASY_PILL_LABEL_TOP)
+        assertTrue(alpha < GlassTokens.EASY_PILL_GLOSS_TOP_ALPHA)
+        for (dark in listOf(false, true)) {
+            for (stop in GlassTokens.easyPillGradient(dark)) {
+                val bg = Color.White.copy(alpha = alpha).compositeOver(stop)
+                assertTrue(GlassTokens.contrastRatio(Color.White, bg) >= 4.5, "stop $stop dark=$dark")
+            }
+        }
+    }
+
+    @Test
+    fun protocolTagTextContrastOnTintedGlass() {
+        for (dark in listOf(false, true)) {
+            val p = GlassTokens.palette(dark)
+            for (glow in listOf(Color.Transparent, p.glowGreen, p.glowTeal, p.glowBlue)) {
+                val bg = GlassTokens.protocolTagTint.compositeOver(GlassTokens.effectiveSurface(p, glow))
+                assertTrue(GlassTokens.contrastRatio(GlassTokens.protocolTagText(dark), bg) >= 4.5, "dark=$dark")
+            }
+        }
     }
 }

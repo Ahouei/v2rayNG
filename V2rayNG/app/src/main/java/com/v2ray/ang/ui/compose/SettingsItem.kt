@@ -38,7 +38,7 @@ fun PreferenceGroupHeader(title: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.secondary,
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+            .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp)
     )
 }
 
@@ -53,7 +53,7 @@ fun CollapsiblePreferenceGroupHeader(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onExpandedChange(!expanded) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -88,38 +88,47 @@ private fun SettingsItemRow(
     val descriptionColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
 
-    Row(
+    // Glass card per row: every settings screen built from these items inherits the look.
+    GlassSurface(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 3.dp),
+        shape = GlassShapeRow,
+        elevation = 0.dp,
+        interaction = if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier,
     ) {
-        if (icon != null) {
-            Icon(
-                painter = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = titleColor
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = titleColor
-            )
-            if (!description.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = descriptionColor
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Icon(
+                    painter = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = titleColor
                 )
+                Spacer(modifier = Modifier.width(16.dp))
             }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = titleColor
+                )
+                if (!description.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = descriptionColor
+                    )
+                }
+            }
+            trailing?.invoke()
         }
-        trailing?.invoke()
     }
 }
 

@@ -5,11 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -49,10 +48,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.LocateTarget
 import com.v2ray.ang.dto.entities.ProfileItem
-import com.v2ray.ang.ui.compose.ItemDivider
+import com.v2ray.ang.ui.compose.GlassShapePill
+import com.v2ray.ang.ui.compose.GlassShapeRow
+import com.v2ray.ang.ui.compose.GlassSurface
+import com.v2ray.ang.ui.compose.GlassTokens
+import com.v2ray.ang.ui.compose.LocalDarkTheme
 import com.v2ray.ang.ui.compose.ReorderableGridItem
 import com.v2ray.ang.ui.compose.ReorderableListItem
-import com.v2ray.ang.ui.compose.colorConfigType
+import com.v2ray.ang.ui.compose.colorConnectedDark
+import com.v2ray.ang.ui.compose.colorConnectedLight
 import com.v2ray.ang.ui.compose.colorPing
 import com.v2ray.ang.ui.compose.colorPingRed
 import com.v2ray.ang.ui.compose.verticalScrollbar
@@ -175,7 +179,9 @@ private fun ServerListPage(
                     ) { isDragging ->
                         ReorderableGridItem(
                             scope = this,
-                            isDragging = isDragging
+                            isDragging = isDragging,
+                            // Opaque while lifted so neighbours do not show through the glass row.
+                            color = if (isDragging) MaterialTheme.colorScheme.surface else Color.Transparent
                         ) { content() }
                     }
                 } else {
@@ -210,7 +216,9 @@ private fun ServerListPage(
                     ) { isDragging ->
                         ReorderableListItem(
                             scope = this,
-                            isDragging = isDragging
+                            isDragging = isDragging,
+                            // Opaque while lifted so neighbours do not show through the glass row.
+                            color = if (isDragging) MaterialTheme.colorScheme.surface else Color.Transparent
                         ) {
                             ServerItemRow(
                                 row = row,
@@ -218,7 +226,6 @@ private fun ServerListPage(
                                 actions = actions
                             )
                         }
-                        ItemDivider()
                     }
                 } else {
                     ServerItemRow(
@@ -226,7 +233,6 @@ private fun ServerListPage(
                         isSelected = row.guid == selectedGuid,
                         actions = actions
                     )
-                    ItemDivider()
                 }
             }
         }
@@ -286,15 +292,12 @@ private fun ServerItemColumn(
     doubleColumnDisplay: Boolean,
     actions: ServerRowActions
 ) {
-    Column {
-        ServerListItem(
-            row = row,
-            isSelected = isSelected,
-            doubleColumnDisplay = doubleColumnDisplay,
-            actions = actions
-        )
-        ItemDivider()
-    }
+    ServerListItem(
+        row = row,
+        isSelected = isSelected,
+        doubleColumnDisplay = doubleColumnDisplay,
+        actions = actions
+    )
 }
 
 @Composable
@@ -314,10 +317,20 @@ private fun ServerListItem(
     } else {
         null
     }
-    Row(
+    val dark = LocalDarkTheme.current
+    val green = if (dark) colorConnectedDark else colorConnectedLight
+    val quality = EasyLocationRanking.quality(row.testDelayMillis)
+    val protocolTag = serverProtocolTag(row.typeDescription)
+    // Glass row; the selected server is tinted and outlined green.
+    GlassSurface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        shape = GlassShapeRow,
+        tint = if (isSelected) GlassTokens.greenTint(dark) else Color.Transparent,
+        edgeColor = if (isSelected) green else null,
+        elevation = 0.dp,
+        interaction = Modifier
             .semantics {
                 if (selectedStateDescription != null) {
                     stateDescription = selectedStateDescription
@@ -325,29 +338,10 @@ private fun ServerListItem(
             }
             .clickable { actions.select(row.guid) }
     ) {
-        Box(
-            Modifier
-                .width(10.dp)
-                .fillMaxHeight()
-        ) {
-            if (isSelected) {
-                Row {
-                    Spacer(Modifier.width(6.dp))
-                    Box(
-                        Modifier
-                            .width(4.dp)
-                            .fillMaxHeight()
-                            .padding(vertical = 10.dp)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                }
-            }
-        }
-
         Column(
             Modifier
-                .weight(1f)
-                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(row.remarks, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge.copy(lineBreak = LineBreak.Paragraph), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -405,12 +399,26 @@ private fun ServerListItem(
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (protocolTag.isNotEmpty()) {
+                    Text(
+                        protocolTag,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = GlassTokens.protocolTagText(LocalDarkTheme.current),
+                        maxLines = 1,
+                        modifier = Modifier
+                            .clip(GlassShapePill)
+                            .background(GlassTokens.protocolTagTint)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Text(
                     row.typeDescription,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
-                    color = colorConfigType,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -422,6 +430,10 @@ private fun ServerListItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (quality != SignalQuality.UNTESTED) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SignalBars(level = EasyLocationRanking.bars(quality))
+                }
             }
         }
     }
