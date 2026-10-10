@@ -622,4 +622,29 @@
         <item quantity="other">Kiểm tra tiếp sau %d phút</item>
     </plurals>
 
+    <string name="auto_switch_faster">Đã chuyển sang %1$s · nhanh hơn %2$d ms</string>
+    <string name="auto_switch_dead">%1$s không phản hồi · đã chuyển sang %2$s</string>
+    <string name="auto_switch_undo">Hoàn tác</string>
+    <string name="switching_rules_title">Quy tắc chuyển máy chủ</string>
+    <string name="switching_rules_open_summary">Nâng cao: khi nào đổi máy chủ</string>
+    <string name="switching_rules_note">Dùng trong Chế độ dễ khi bật “Tự động chuyển”.</string>
+    <string name="switching_rules_section_dead">Máy chủ ngừng phản hồi</string>
+    <string name="switching_rules_section_faster">Máy chủ nhanh hơn</string>
+    <string name="switching_rules_reset">Khôi phục mặc định</string>
+    <string name="switching_rules_dead_failures">Số lần kiểm tra lỗi trước khi chuyển</string>
+    <string name="switching_rules_failing_check">Chu kỳ kiểm tra khi lỗi</string>
+    <string name="switching_rules_health_check">Chu kỳ kiểm tra khi ổn định</string>
+    <string name="switching_rules_min_current_rtt">Chỉ chuyển vì tốc độ khi độ trễ trên</string>
+    <string name="switching_rules_max_percent">Độ trễ máy chủ mới tối đa</string>
+    <string name="switching_rules_min_gain">Mức cải thiện tối thiểu</string>
+    <string name="switching_rules_confirm_runs">Tốt hơn trong số lần kiểm tra liên tiếp</string>
+    <string name="switching_rules_min_gap">Thời gian tối thiểu giữa các lần chuyển vì tốc độ</string>
+    <string name="switching_rules_block">Tránh máy chủ vừa rời trong</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d giây</string>
+    <string name="switching_rules_value_millis">%1$d ms</string>
+    <string name="switching_rules_value_percent">%1$d%% hiện tại</string>
+    <string name="switching_rules_value_minutes">%1$d phút</string>
+    <string name="switching_rules_decrease">Giảm %1$s</string>
+    <string name="switching_rules_increase">Tăng %1$s</string>
 </resources>

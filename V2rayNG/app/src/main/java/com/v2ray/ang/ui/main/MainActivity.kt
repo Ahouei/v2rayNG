@@ -118,6 +118,10 @@ class MainActivity : HelperBaseComponentActivity() {
                     is MainAction.SelectServer -> selectServerManually(action.guid)
                     MainAction.SelectFastest -> mainViewModel.setFastestMode(true)
                     is MainAction.SelectEasyServer -> selectServerManually(action.guid)
+                    is MainAction.UndoAutoSwitch -> {
+                        mainViewModel.dismissAutoSwitchNotice()
+                        selectServerManually(action.previousGuid)
+                    }
                     MainAction.OpenConnectionSettings ->
                         settingsActivityLauncher.launch(Intent(this, ConnectionSettingsActivity::class.java))
                     is MainAction.EditServer -> editServer(action.guid, action.profile)
@@ -283,6 +287,12 @@ class MainActivity : HelperBaseComponentActivity() {
                         // Re-resolved from fresh state so a manual pick made after emission wins.
                         is MainViewModelEvent.AutoSelectServer ->
                             if (mainViewModel.isAutoSelectCurrent(event.guid)) setSelectServer(event.guid)
+                        // Same restart path as a manual pick; dropped when the selection changed meanwhile.
+                        is MainViewModelEvent.AutoSwitchServer ->
+                            if (mainViewModel.consumeAutoSwitch(event)) {
+                                setSelectServer(event.toGuid)
+                                mainViewModel.onAutoSwitchApplied(event)
+                            }
                         else -> Unit
                     }
                 }

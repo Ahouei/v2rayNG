@@ -208,6 +208,9 @@
             android:name=".ui.main.ConnectionSettingsActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.main.SwitchingRulesActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.backup.BackupActivity"
             android:exported="false" />
         <activity

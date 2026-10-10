@@ -628,4 +628,29 @@
         <item quantity="other">Next check in %d min</item>
     </plurals>
 
+    <string name="auto_switch_faster">Switched to %1$s · %2$d ms faster</string>
+    <string name="auto_switch_dead">%1$s stopped responding · switched to %2$s</string>
+    <string name="auto_switch_undo">Undo</string>
+    <string name="switching_rules_title">Switching rules</string>
+    <string name="switching_rules_open_summary">Advanced: when to change servers</string>
+    <string name="switching_rules_note">Used in Easy mode when “Switch automatically” is on.</string>
+    <string name="switching_rules_section_dead">Server stops responding</string>
+    <string name="switching_rules_section_faster">Faster server</string>
+    <string name="switching_rules_reset">Reset to defaults</string>
+    <string name="switching_rules_dead_failures">Failed checks before switching</string>
+    <string name="switching_rules_failing_check">Check interval while failing</string>
+    <string name="switching_rules_health_check">Check interval while healthy</string>
+    <string name="switching_rules_min_current_rtt">Switch for speed only above</string>
+    <string name="switching_rules_max_percent">New server latency at most</string>
+    <string name="switching_rules_min_gain">Minimum improvement</string>
+    <string name="switching_rules_confirm_runs">Better in consecutive tests</string>
+    <string name="switching_rules_min_gap">Minimum time between speed switches</string>
+    <string name="switching_rules_block">Avoid the server just left for</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d s</string>
+    <string name="switching_rules_value_millis">%1$d ms</string>
+    <string name="switching_rules_value_percent">%1$d%% of current</string>
+    <string name="switching_rules_value_minutes">%1$d min</string>
+    <string name="switching_rules_decrease">Decrease %1$s</string>
+    <string name="switching_rules_increase">Increase %1$s</string>
 </resources>

@@ -627,4 +627,29 @@
         <item quantity="other">بررسی بعدی تا %d دقیقه دیگر</item>
     </plurals>
 
+    <string name="auto_switch_faster">به %1$s تغییر کرد · %2$d میلی‌ثانیه سریع‌تر</string>
+    <string name="auto_switch_dead">%1$s پاسخ نمی‌دهد · به %2$s تغییر کرد</string>
+    <string name="auto_switch_undo">واگرد</string>
+    <string name="switching_rules_title">قوانین تغییر سرور</string>
+    <string name="switching_rules_open_summary">پیشرفته: زمان تغییر سرور</string>
+    <string name="switching_rules_note">در حالت ساده وقتی «تغییر خودکار» روشن است اعمال می‌شود.</string>
+    <string name="switching_rules_section_dead">سرور پاسخ نمی‌دهد</string>
+    <string name="switching_rules_section_faster">سرور سریع‌تر</string>
+    <string name="switching_rules_reset">بازگشت به پیش‌فرض</string>
+    <string name="switching_rules_dead_failures">تعداد بررسی ناموفق پیش از تغییر</string>
+    <string name="switching_rules_failing_check">فاصله بررسی هنگام خطا</string>
+    <string name="switching_rules_health_check">فاصله بررسی در حالت سالم</string>
+    <string name="switching_rules_min_current_rtt">تغییر برای سرعت فقط اگر تأخیر بیشتر از</string>
+    <string name="switching_rules_max_percent">تأخیر سرور جدید حداکثر</string>
+    <string name="switching_rules_min_gain">حداقل بهبود</string>
+    <string name="switching_rules_confirm_runs">بهتر در آزمون‌های پیاپی</string>
+    <string name="switching_rules_min_gap">حداقل فاصله بین تغییرها برای سرعت</string>
+    <string name="switching_rules_block">دوری از سرور قبلی به مدت</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d ثانیه</string>
+    <string name="switching_rules_value_millis">%1$d میلی‌ثانیه</string>
+    <string name="switching_rules_value_percent">%1$d%% از فعلی</string>
+    <string name="switching_rules_value_minutes">%1$d دقیقه</string>
+    <string name="switching_rules_decrease">کاهش %1$s</string>
+    <string name="switching_rules_increase">افزایش %1$s</string>
 </resources>

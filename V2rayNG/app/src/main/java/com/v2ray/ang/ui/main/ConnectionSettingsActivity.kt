@@ -1,5 +1,6 @@
 package com.v2ray.ang.ui.main
 
+import android.content.Intent
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -71,6 +72,7 @@ class ConnectionSettingsActivity : BaseComponentActivity() {
             state = state,
             onAction = viewModel::onAction,
             onBack = { finish() },
+            onOpenSwitchingRules = { startActivity(Intent(this, SwitchingRulesActivity::class.java)) },
         )
     }
 }
@@ -80,6 +82,7 @@ internal fun ConnectionSettingsScreen(
     state: AutoTestSettings,
     onAction: (ConnectionSettingsAction) -> Unit,
     onBack: () -> Unit,
+    onOpenSwitchingRules: () -> Unit,
 ) {
     var showIntervalSheet by rememberSaveable { mutableStateOf(false) }
     GlassBackground {
@@ -163,6 +166,11 @@ internal fun ConnectionSettingsScreen(
                             checked = state.notifyOnSwitch,
                             enabled = state.autoSwitch,
                             onCheckedChange = { onAction(ConnectionSettingsAction.SetNotifyOnSwitch(it)) },
+                        )
+                        GlassValueRow(
+                            title = stringResource(R.string.switching_rules_title),
+                            value = stringResource(R.string.switching_rules_open_summary),
+                            onClick = onOpenSwitchingRules,
                         )
                     }
                 }

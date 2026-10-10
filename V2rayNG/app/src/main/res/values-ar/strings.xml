@@ -652,4 +652,29 @@
         <item quantity="other">الفحص التالي بعد %d دقيقة</item>
     </plurals>
 
+    <string name="auto_switch_faster">تم التبديل إلى %1$s · أسرع بـ %2$d مللي ثانية</string>
+    <string name="auto_switch_dead">%1$s توقف عن الاستجابة · تم التبديل إلى %2$s</string>
+    <string name="auto_switch_undo">تراجع</string>
+    <string name="switching_rules_title">قواعد التبديل</string>
+    <string name="switching_rules_open_summary">متقدم: متى يتم تغيير الخادم</string>
+    <string name="switching_rules_note">تُطبَّق في الوضع السهل عند تشغيل «التبديل تلقائيًا».</string>
+    <string name="switching_rules_section_dead">الخادم توقف عن الاستجابة</string>
+    <string name="switching_rules_section_faster">خادم أسرع</string>
+    <string name="switching_rules_reset">استعادة الإعدادات الافتراضية</string>
+    <string name="switching_rules_dead_failures">عدد الفحوصات الفاشلة قبل التبديل</string>
+    <string name="switching_rules_failing_check">فاصل الفحص عند الفشل</string>
+    <string name="switching_rules_health_check">فاصل الفحص في الحالة السليمة</string>
+    <string name="switching_rules_min_current_rtt">التبديل للسرعة فقط عندما يتجاوز زمن الاستجابة</string>
+    <string name="switching_rules_max_percent">زمن استجابة الخادم الجديد بحد أقصى</string>
+    <string name="switching_rules_min_gain">أدنى تحسن</string>
+    <string name="switching_rules_confirm_runs">أفضل في اختبارات متتالية</string>
+    <string name="switching_rules_min_gap">أقل مدة بين عمليات التبديل للسرعة</string>
+    <string name="switching_rules_block">تجنب الخادم السابق لمدة</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d ث</string>
+    <string name="switching_rules_value_millis">%1$d مللي ثانية</string>
+    <string name="switching_rules_value_percent">%1$d%% من الحالي</string>
+    <string name="switching_rules_value_minutes">%1$d دقيقة</string>
+    <string name="switching_rules_decrease">تقليل %1$s</string>
+    <string name="switching_rules_increase">زيادة %1$s</string>
 </resources>

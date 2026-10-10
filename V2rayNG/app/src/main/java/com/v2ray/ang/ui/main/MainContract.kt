@@ -3,6 +3,7 @@ package com.v2ray.ang.ui.main
 import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.LocateTarget
+import com.v2ray.ang.handler.AutoSwitchEngine
 import com.v2ray.ang.ui.base.ViewModelEvent
 
 /** Locale-neutral state formatted only when it reaches the main UI. */
@@ -118,10 +119,38 @@ sealed interface MainAction {
 
     /** Easy mode: open the Connection settings screen; handled by the activity. */
     data object OpenConnectionSettings : MainAction
+
+    /** Undo of an automatic switch: pins [previousGuid] (Fastest off); handled by the activity. */
+    data class UndoAutoSwitch(val previousGuid: String) : MainAction
+
+    /** The automatic-switch message was shown and dismissed without Undo. */
+    data object DismissAutoSwitchNotice : MainAction
 }
+
+/** Message shown on Easy home after an automatic switch; [id] makes each switch a new message. */
+data class AutoSwitchNotice(
+    val id: Long,
+    val fromGuid: String,
+    val fromName: String,
+    val toName: String,
+    val reason: AutoSwitchEngine.Reason,
+    /** Round-trip gain in ms for a speed switch; null for a dead-server switch. */
+    val gainMillis: Long?,
+)
 
 /** One-shot MainViewModel -> MainActivity events. */
 sealed interface MainViewModelEvent : ViewModelEvent {
     /** Auto-fastest mode picked [guid]; the activity re-checks fresh state before applying it. */
     data class AutoSelectServer(val guid: String) : MainViewModelEvent
+
+    /**
+     * Auto switch decided to leave [fromGuid] for [toGuid]; the activity re-checks fresh state
+     * through [MainViewModel.consumeAutoSwitch] and applies it with the normal restart path.
+     */
+    data class AutoSwitchServer(
+        val fromGuid: String,
+        val toGuid: String,
+        val reason: AutoSwitchEngine.Reason,
+        val gainMillis: Long?,
+    ) : MainViewModelEvent
 }

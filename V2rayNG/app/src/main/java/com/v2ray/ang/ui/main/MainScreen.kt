@@ -51,6 +51,7 @@ fun MainScreen(
         val locationState by mainViewModel.easyLocationState.collectAsStateWithLifecycle()
         // Not read here: only TrafficLine reads it, so per-second samples skip this scope.
         val trafficState = mainViewModel.traffic.collectAsStateWithLifecycle()
+        val autoSwitchNotice by mainViewModel.autoSwitchNotice.collectAsStateWithLifecycle()
         val selectedDelay = remember(uiState.selectedGuid, locationState.rows, uiState.currentServerDelay) {
             EasyLocationRanking.selectedDelay(uiState.selectedGuid, locationState.rows, uiState.currentServerDelay)
         }
@@ -67,6 +68,7 @@ fun MainScreen(
             testingText = testingText,
             traffic = { trafficState.value },
             selectedDelay = selectedDelay,
+            autoSwitchNotice = autoSwitchNotice,
             onAction = onAction,
         )
         return

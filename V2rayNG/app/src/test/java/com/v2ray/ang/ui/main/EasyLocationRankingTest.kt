@@ -165,6 +165,22 @@ class EasyLocationRankingTest {
     }
 
     @Test
+    fun autoSelectTargetLeavesConnectedSwitchingToAutoSwitchRules() {
+        val servers = listOf(server("a", 300), server("b", 80))
+        assertNull(
+            EasyLocationRanking.autoSelectTarget(
+                servers, "a", fastestMode = true, isTesting = false, easyMode = true, connectedLocked = true
+            )
+        )
+        assertEquals(
+            "b",
+            EasyLocationRanking.autoSelectTarget(
+                servers, "a", fastestMode = true, isTesting = false, easyMode = true, connectedLocked = false
+            )
+        )
+    }
+
+    @Test
     fun autoSelectTargetKeepsSelectionFromAnotherGroup() {
         val servers = listOf(server("a", 300), server("b", 80))
         assertNull(EasyLocationRanking.autoSelectTarget(servers, "other", fastestMode = true, isTesting = false, easyMode = true))

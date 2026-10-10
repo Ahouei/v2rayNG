@@ -100,7 +100,9 @@ internal object EasyLocationRanking {
      * GUID the auto-fastest mode should switch to, or null to keep the current selection: null when
      * Easy mode or the fastest mode is off, a test is still running, the current selection belongs to
      * another group (browsing a group never overrides it), no server succeeded, or the fastest is
-     * already selected.
+     * already selected. While [connectedLocked] (connected, and the user did not just choose
+     * "Fastest") the selection is changed only by the auto-switch rules in
+     * [com.v2ray.ang.handler.AutoSwitchEngine], so this returns null.
      */
     fun autoSelectTarget(
         servers: List<ServersCache>,
@@ -108,8 +110,9 @@ internal object EasyLocationRanking {
         fastestMode: Boolean,
         isTesting: Boolean,
         easyMode: Boolean,
+        connectedLocked: Boolean = false,
     ): String? {
-        if (!easyMode || !fastestMode || isTesting) return null
+        if (!easyMode || !fastestMode || isTesting || connectedLocked) return null
         if (selectedGuid != null && servers.none { it.guid == selectedGuid }) return null
         val fastest = fastestGuid(servers) ?: return null
         return fastest.takeIf { it != selectedGuid }

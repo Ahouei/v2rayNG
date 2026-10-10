@@ -26,10 +26,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.TrafficSpeed
+import com.v2ray.ang.handler.AutoSwitchEngine
 import com.v2ray.ang.ui.compose.GlassBackground
 import com.v2ray.ang.ui.compose.GlassShapePill
 import com.v2ray.ang.ui.compose.GlassSurface
@@ -77,8 +85,31 @@ internal fun EasyHomeScreen(
     testingText: String?,
     traffic: () -> TrafficSpeed?,
     selectedDelay: Long?,
+    autoSwitchNotice: AutoSwitchNotice?,
     onAction: (MainAction) -> Unit,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    if (autoSwitchNotice != null) {
+        val message = autoSwitchMessage(autoSwitchNotice)
+        val undoLabel = stringResource(R.string.auto_switch_undo)
+        val currentOnAction by rememberUpdatedState(onAction)
+        // Keyed by the notice id: each switch shows once; Undo pins the previous server.
+        LaunchedEffect(autoSwitchNotice.id) {
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = undoLabel,
+                withDismissAction = false,
+                duration = SnackbarDuration.Long,
+            )
+            currentOnAction(
+                if (result == SnackbarResult.ActionPerformed) {
+                    MainAction.UndoAutoSwitch(autoSwitchNotice.fromGuid)
+                } else {
+                    MainAction.DismissAutoSwitchNotice
+                }
+            )
+        }
+    }
     var showLocations by rememberSaveable { mutableStateOf(false) }
     // Live traffic is sampled only while this screen is started; the ViewModel also requires a connection.
     LifecycleStartEffect(Unit) {
@@ -90,6 +121,7 @@ internal fun EasyHomeScreen(
             containerColor = Color.Transparent,
             // contentColorFor(Transparent) is Unspecified, which would render text black.
             contentColor = MaterialTheme.colorScheme.onBackground,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 Row(
                     modifier = Modifier
@@ -414,4 +446,17 @@ private fun ColumnScope.EasyNoServer(
         Text(stringResource(R.string.menu_item_import_config_clipboard))
     }
     Spacer(modifier = Modifier.weight(1f))
+}
+
+/** Localized text of an automatic-switch message; an empty name falls back to "Unnamed server". */
+@Composable
+private fun autoSwitchMessage(notice: AutoSwitchNotice): String {
+    val unnamed = stringResource(R.string.easy_location_unnamed)
+    val to = notice.toName.ifEmpty { unnamed }
+    return when (notice.reason) {
+        AutoSwitchEngine.Reason.DEAD ->
+            stringResource(R.string.auto_switch_dead, notice.fromName.ifEmpty { unnamed }, to)
+        AutoSwitchEngine.Reason.FASTER ->
+            stringResource(R.string.auto_switch_faster, to, notice.gainMillis ?: 0L)
+    }
 }

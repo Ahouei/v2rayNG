@@ -627,4 +627,29 @@
         <item quantity="other">%d মিনিট পরে পরবর্তী পরীক্ষা</item>
     </plurals>
 
+    <string name="auto_switch_faster">%1$s-এ পরিবর্তন করা হয়েছে · %2$d ms দ্রুত</string>
+    <string name="auto_switch_dead">%1$s সাড়া দিচ্ছে না · %2$s-এ পরিবর্তন করা হয়েছে</string>
+    <string name="auto_switch_undo">পূর্বাবস্থায় ফেরান</string>
+    <string name="switching_rules_title">সার্ভার পরিবর্তনের নিয়ম</string>
+    <string name="switching_rules_open_summary">উন্নত: কখন সার্ভার বদলাবে</string>
+    <string name="switching_rules_note">সহজ মোডে “স্বয়ংক্রিয়ভাবে পরিবর্তন” চালু থাকলে প্রযোজ্য।</string>
+    <string name="switching_rules_section_dead">সার্ভার সাড়া দিচ্ছে না</string>
+    <string name="switching_rules_section_faster">দ্রুততর সার্ভার</string>
+    <string name="switching_rules_reset">ডিফল্টে ফেরান</string>
+    <string name="switching_rules_dead_failures">পরিবর্তনের আগে ব্যর্থ পরীক্ষা</string>
+    <string name="switching_rules_failing_check">ব্যর্থ অবস্থায় পরীক্ষার ব্যবধান</string>
+    <string name="switching_rules_health_check">স্বাভাবিক অবস্থায় পরীক্ষার ব্যবধান</string>
+    <string name="switching_rules_min_current_rtt">শুধু লেটেন্সি এর বেশি হলে গতির জন্য পরিবর্তন</string>
+    <string name="switching_rules_max_percent">নতুন সার্ভারের লেটেন্সি সর্বোচ্চ</string>
+    <string name="switching_rules_min_gain">ন্যূনতম উন্নতি</string>
+    <string name="switching_rules_confirm_runs">পরপর পরীক্ষায় ভালো</string>
+    <string name="switching_rules_min_gap">গতির জন্য পরিবর্তনের মধ্যে ন্যূনতম সময়</string>
+    <string name="switching_rules_block">ছেড়ে আসা সার্ভার এড়িয়ে চলুন</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d সে</string>
+    <string name="switching_rules_value_millis">%1$d ms</string>
+    <string name="switching_rules_value_percent">বর্তমানের %1$d%%</string>
+    <string name="switching_rules_value_minutes">%1$d মিনিট</string>
+    <string name="switching_rules_decrease">%1$s কমান</string>
+    <string name="switching_rules_increase">%1$s বাড়ান</string>
 </resources>

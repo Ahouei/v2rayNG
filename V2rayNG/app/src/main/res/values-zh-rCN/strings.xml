@@ -622,4 +622,29 @@
         <item quantity="other">%d 分钟后检查</item>
     </plurals>
 
+    <string name="auto_switch_faster">已切换到 %1$s · 快 %2$d 毫秒</string>
+    <string name="auto_switch_dead">%1$s 无响应 · 已切换到 %2$s</string>
+    <string name="auto_switch_undo">撤销</string>
+    <string name="switching_rules_title">切换规则</string>
+    <string name="switching_rules_open_summary">高级：何时更换服务器</string>
+    <string name="switching_rules_note">在简易模式下开启“自动切换”时生效。</string>
+    <string name="switching_rules_section_dead">服务器无响应</string>
+    <string name="switching_rules_section_faster">更快的服务器</string>
+    <string name="switching_rules_reset">恢复默认</string>
+    <string name="switching_rules_dead_failures">切换前的失败检测次数</string>
+    <string name="switching_rules_failing_check">失败时的检测间隔</string>
+    <string name="switching_rules_health_check">正常时的检测间隔</string>
+    <string name="switching_rules_min_current_rtt">仅在延迟高于此值时为速度切换</string>
+    <string name="switching_rules_max_percent">新服务器延迟最多为</string>
+    <string name="switching_rules_min_gain">最小改善</string>
+    <string name="switching_rules_confirm_runs">连续测试中更优次数</string>
+    <string name="switching_rules_min_gap">速度切换的最短间隔</string>
+    <string name="switching_rules_block">避开刚离开的服务器</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d 秒</string>
+    <string name="switching_rules_value_millis">%1$d 毫秒</string>
+    <string name="switching_rules_value_percent">当前的 %1$d%%</string>
+    <string name="switching_rules_value_minutes">%1$d 分钟</string>
+    <string name="switching_rules_decrease">减少%1$s</string>
+    <string name="switching_rules_increase">增加%1$s</string>
 </resources>

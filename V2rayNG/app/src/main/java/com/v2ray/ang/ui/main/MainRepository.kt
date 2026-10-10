@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.v2ray.ang.AngApplication
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.AutoSwitchRules
 import com.v2ray.ang.dto.AutoTestNetwork
 import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.ConnectionTestResult
@@ -156,6 +157,8 @@ class MainRepository(
         MmkvManager.decodeSettingsBool(AppConfig.PREF_GROUP_ALL_DISPLAY)
 
     override fun getAutoTestSettings(): AutoTestSettings = SettingsManager.getAutoTestSettings()
+
+    override fun getAutoSwitchRules(): AutoSwitchRules = SettingsManager.getAutoSwitchRules()
 
     override fun isPowerSaveMode(): Boolean =
         (app.getSystemService(Context.POWER_SERVICE) as? PowerManager)?.isPowerSaveMode == true

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.AutoSwitchRules
 import com.v2ray.ang.dto.AutoTestNetwork
 import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.ConnectionTestResult
@@ -22,6 +23,7 @@ import com.v2ray.ang.extension.delay
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
+import com.v2ray.ang.handler.AutoSwitchEngine
 import com.v2ray.ang.handler.AutoTestPolicy
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
@@ -41,6 +43,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -48,6 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.PatternSyntaxException
 
@@ -81,6 +85,8 @@ private data class AutoSelectInputs(
     val isTesting: Boolean,
     val fastestMode: Boolean,
     val easyMode: Boolean,
+    /** Connected and no explicit "Fastest" choice pending: only auto-switch rules may change it. */
+    val connectedLocked: Boolean,
 )
 
 class MainViewModel(
@@ -152,6 +158,30 @@ class MainViewModel(
     /** GUID that the in-flight current-server measurement belongs to. */
     private var currentTestGuid: String? = null
 
+    // ---------- Automatic switching ----------
+    private val autoSwitchRules = MutableStateFlow(dataSource.getAutoSwitchRules())
+
+    /** Health-check and test-run history of the switch rules; main-thread only, kept in memory. */
+    private var switchHistory = AutoSwitchEngine.History()
+
+    /** Target of a switch event not yet applied or dropped by the activity; prevents duplicates. */
+    private var switchInFlight: String? = null
+
+    /**
+     * Set when an automatic switch starts its service restart; keeps the connected lock on through
+     * the transient not-running state so auto-select cannot override the switch target. Cleared on
+     * the next start success or failure.
+     */
+    private val switchRestartPending = MutableStateFlow(false)
+
+    /** Set when the user chooses "Fastest" so one immediate pick is allowed while connected. */
+    private val fastestPickPending = MutableStateFlow(false)
+
+    private val _autoSwitchNotice = MutableStateFlow<AutoSwitchNotice?>(null)
+
+    /** Latest automatic-switch message for Easy home, or null; cleared on dismiss or Undo. */
+    val autoSwitchNotice: StateFlow<AutoSwitchNotice?> = _autoSwitchNotice.asStateFlow()
+
     // ---------- Service events ----------
     init {
         collectServiceEvents()
@@ -159,6 +189,7 @@ class MainViewModel(
         collectEasyLocations()
         collectTrafficRequests()
         collectAutoTestSchedule()
+        collectAutoSwitchHealthChecks()
         setupGroupTab()
     }
 
@@ -271,6 +302,113 @@ class MainViewModel(
         return decision
     }
 
+    /**
+     * Health checks of the connected server for auto switch: the existing current-server
+     * measurement, repeated at the healthy interval and at the short failing interval while it
+     * fails. Runs only in Easy mode, connected, with "Switch automatically" on and Easy home
+     * started (the switch is applied by the activity, so no checks run without a started UI);
+     * owned by viewModelScope and restarted when the rules or the selected server change.
+     */
+    private data class HealthCheckKey(val enabled: Boolean, val rules: AutoSwitchRules, val guid: String?)
+
+    private fun collectAutoSwitchHealthChecks() {
+        viewModelScope.launch {
+            combine(
+                uiState.map { it.isRunning && it.easyMode }.distinctUntilChanged(),
+                trafficVisible,
+                autoTestSettings.map { it.autoSwitch }.distinctUntilChanged(),
+                autoSwitchRules,
+                uiState.map { it.selectedGuid }.distinctUntilChanged(),
+            ) { active, visible, autoSwitch, rules, guid ->
+                HealthCheckKey(active && visible && autoSwitch, rules, guid)
+            }
+                .distinctUntilChanged()
+                .collectLatest { key ->
+                    if (!key.enabled) return@collectLatest
+                    while (true) {
+                        delay(AutoSwitchEngine.nextHealthCheckDelayMillis(switchHistory, key.guid, key.rules))
+                        // A running test delays the check only until it ends, not a full interval.
+                        uiState.first { !it.isTesting }
+                        testCurrentServerRealPing()
+                    }
+                }
+        }
+    }
+
+    /** Runs [AutoSwitchEngine.decide] on the latest history and emits a switch event on a decision. */
+    private fun evaluateAutoSwitch() {
+        val state = uiState.value
+        if (state.isTesting || switchInFlight != null) return
+        val current = state.selectedGuid
+        val decision = freshAutoSwitchDecision(state)
+        if (decision is AutoSwitchEngine.Decision.Stay &&
+            decision.reason == AutoSwitchEngine.StayReason.NO_REACHABLE &&
+            switchHistory.runs.isEmpty() && testRequests.bulk == null
+        ) {
+            // Dead with no run recorded yet: measure once so the finished run can provide a target.
+            testAllRealPing()
+            return
+        }
+        if (decision !is AutoSwitchEngine.Decision.Switch || current == null) return
+        LogUtil.i(AppConfig.TAG, "Auto switch (${decision.reason}): $current -> ${decision.targetGuid}")
+        switchInFlight = decision.targetGuid
+        val rules = autoSwitchRules.value
+        viewModelScope.launch {
+            // Undelivered within one failing interval (activity stopped): drop it; the next check decides afresh.
+            val sent = withTimeoutOrNull(rules.failingCheckSeconds * 1_000L) {
+                _viewModelEvent.send(
+                    MainViewModelEvent.AutoSwitchServer(current, decision.targetGuid, decision.reason, decision.gainMillis)
+                )
+            }
+            if (sent == null && switchInFlight == decision.targetGuid) switchInFlight = null
+        }
+    }
+
+    private fun freshAutoSwitchDecision(state: MainUiState): AutoSwitchEngine.Decision =
+        AutoSwitchEngine.decide(
+            MainStateReducer.autoSwitchInputs(
+                state = state,
+                autoSwitch = autoTestSettings.value.autoSwitch,
+                history = switchHistory,
+                nowMillis = SystemClock.elapsedRealtime(),
+                rules = autoSwitchRules.value,
+                cachedResults = currentServers().associate { it.guid to it.testDelayMillis },
+            )
+        )
+
+    /**
+     * Called by the activity before applying [event]; true only when a fresh decision on current
+     * state still returns the same target and reason. Either way the event is consumed.
+     */
+    internal fun consumeAutoSwitch(event: MainViewModelEvent.AutoSwitchServer): Boolean {
+        if (switchInFlight == event.toGuid) switchInFlight = null
+        val state = uiState.value
+        return MainStateReducer.shouldApplyAutoSwitch(event, state, freshAutoSwitchDecision(state))
+    }
+
+    /** Records an applied switch (blocks the server left, starts the speed-switch gap) and posts the message. */
+    internal fun onAutoSwitchApplied(event: MainViewModelEvent.AutoSwitchServer) {
+        switchHistory = AutoSwitchEngine.recordSwitch(
+            switchHistory, event.fromGuid, event.reason, SystemClock.elapsedRealtime(), autoSwitchRules.value
+        )
+        switchRestartPending.value = true
+        val notify = autoTestSettings.value.notifyOnSwitch
+        if (!notify) return
+        viewModelScope.launch {
+            val (fromName, toName) = withContext(ioDispatcher) {
+                dataSource.decodeServerConfig(event.fromGuid)?.remarks.orEmpty() to
+                    dataSource.decodeServerConfig(event.toGuid)?.remarks.orEmpty()
+            }
+            _autoSwitchNotice.value = MainStateReducer.autoSwitchNotice(
+                event, notify, SystemClock.elapsedRealtime(), fromName, toName
+            )
+        }
+    }
+
+    fun dismissAutoSwitchNotice() {
+        _autoSwitchNotice.value = null
+    }
+
     private fun setNextAutoTestAt(atMillis: Long?) {
         _easyLocationState.update { it.copy(nextAutoTestAtMillis = atMillis) }
     }
@@ -289,19 +427,25 @@ class MainViewModel(
                 .collectLatest { groupId ->
                     combine(
                         mutableServerGroupState(groupId).map { it.servers }.distinctUntilChanged(),
-                        uiState.map { AutoSelectInputs(it.selectedGuid, it.isTesting, it.fastestMode, it.easyMode) }
-                            .distinctUntilChanged(),
+                        combine(uiState, fastestPickPending, switchRestartPending) { state, pickPending, restarting ->
+                            AutoSelectInputs(
+                                state.selectedGuid, state.isTesting, state.fastestMode, state.easyMode,
+                                connectedLocked = (state.isRunning || restarting) && !pickPending,
+                            )
+                        }.distinctUntilChanged(),
                     ) { servers, selection -> servers to selection }
                         .collectLatest { (servers, selection) ->
-                            val (selectedGuid, isTesting, fastestMode, easyMode) = selection
+                            val (selectedGuid, isTesting, fastestMode, easyMode, connectedLocked) = selection
                             val (rows, fastest) = withContext(defaultDispatcher) {
                                 EasyLocationRanking.rank(servers, selectedGuid) to
                                     EasyLocationRanking.fastestGuid(servers)
                             }
                             _easyLocationState.update { it.copy(rows = rows, fastestGuid = fastest) }
                             val target = EasyLocationRanking.autoSelectTarget(
-                                servers, selectedGuid, fastestMode, isTesting, easyMode
+                                servers, selectedGuid, fastestMode, isTesting, easyMode, connectedLocked
                             )
+                            // The explicit "Fastest" pick is done once results exist and nothing is left to apply.
+                            if (target == null && !isTesting && fastest != null) fastestPickPending.value = false
                             if (target != null) {
                                 _viewModelEvent.send(MainViewModelEvent.AutoSelectServer(target))
                             }
@@ -341,12 +485,14 @@ class MainViewModel(
             MainServiceEvent.StateNotRunning -> updateRunningState(false, clearTestingText = false)
             MainServiceEvent.StateStartSuccess -> {
                 toastSuccess(R.string.toast_services_success)
+                switchRestartPending.value = false
                 updateRunningState(true)
                 // Easy home shows the connected server's RTT; Pro mode keeps its manual test.
                 if (uiState.value.easyMode) testCurrentServerRealPing()
             }
 
             is MainServiceEvent.StateStartFailure -> {
+                switchRestartPending.value = false
                 if (!event.message.isNullOrBlank()) {
                     toastError(event.message)
                 } else {
@@ -360,6 +506,10 @@ class MainViewModel(
                 if (!uiState.value.isRunning || !testRequests.completeCurrent(event.requestId)) return
                 val testGuid = currentTestGuid
                 _uiState.update { MainStateReducer.measured(it, testGuid, event.result, testRequests.isTesting) }
+                if (testGuid != null) {
+                    switchHistory = AutoSwitchEngine.recordHealth(switchHistory, testGuid, event.result.delayMillis)
+                    evaluateAutoSwitch()
+                }
             }
 
             is MainServiceEvent.MeasureConfigSuccess -> {
@@ -496,6 +646,7 @@ class MainViewModel(
      */
     fun setFastestMode(enabled: Boolean) {
         dataSource.setFastestMode(enabled)
+        fastestPickPending.value = enabled
         _uiState.update { it.copy(fastestMode = enabled) }
         startFastestTestIfNeeded()
     }
@@ -515,7 +666,8 @@ class MainViewModel(
     internal fun isAutoSelectCurrent(guid: String): Boolean {
         val state = uiState.value
         return EasyLocationRanking.autoSelectTarget(
-            currentServers(), state.selectedGuid, state.fastestMode, state.isTesting, state.easyMode
+            currentServers(), state.selectedGuid, state.fastestMode, state.isTesting, state.easyMode,
+            connectedLocked = (state.isRunning || switchRestartPending.value) && !fastestPickPending.value,
         ) == guid
     }
 
@@ -551,6 +703,8 @@ class MainViewModel(
                 _uiState.update { it.copy(easyMode = action.enabled) }
             }
 
+            MainAction.DismissAutoSwitchNotice -> dismissAutoSwitchNotice()
+
             MainAction.DismissQRCodeDialog -> {
                 _uiState.update { it.copy(shareQRCodeBitmap = null) }
             }
@@ -568,6 +722,7 @@ class MainViewModel(
             is MainAction.ShareFullContent,
             MainAction.SelectFastest,
             MainAction.OpenConnectionSettings,
+            is MainAction.UndoAutoSwitch,
             is MainAction.SelectEasyServer -> {
                 // Handled by Activity via its onAction lambda
             }
@@ -603,6 +758,7 @@ class MainViewModel(
             )
         }
         autoTestSettings.value = dataSource.getAutoTestSettings()
+        autoSwitchRules.value = dataSource.getAutoSwitchRules()
     }
 
     // ---------- Group & server loading ----------
@@ -1152,8 +1308,11 @@ class MainViewModel(
     }
 
     private fun onTestsFinished(requestId: String) {
-        if (testRequests.completeBulk(requestId) == null) return
+        val request = testRequests.completeBulk(requestId) ?: return
         resetTestStatus()
+        val results = mutableServerGroupState(request.groupId).value.servers.associate { it.guid to it.testDelayMillis }
+        switchHistory = AutoSwitchEngine.recordRun(switchHistory, results)
+        evaluateAutoSwitch()
         viewModelScope.launch(ioDispatcher) {
             cacheMutex.withLock { groupDataCache.clear() }
             reloadAllGroups(_uiState.value.groups.map { it.id })

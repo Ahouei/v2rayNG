@@ -11,6 +11,7 @@ import com.v2ray.ang.AppConfig.GEOIP_PRIVATE
 import com.v2ray.ang.AppConfig.GEOSITE_PRIVATE
 import com.v2ray.ang.AppConfig.TAG_DIRECT
 import com.v2ray.ang.AppConfig.VPN
+import com.v2ray.ang.dto.AutoSwitchRules
 import com.v2ray.ang.dto.AutoTestSettings
 import com.v2ray.ang.dto.V2rayConfig
 import com.v2ray.ang.dto.entities.ProfileItem
@@ -612,5 +613,16 @@ object SettingsManager {
 
     fun setAutoSwitchEnabled(enabled: Boolean) {
         MmkvManager.encodeSettings(AppConfig.PREF_AUTO_SWITCH_ENABLED, enabled)
+    }
+
+    /** Reads the automatic switching thresholds; missing or out-of-range values use defaults/clamps. */
+    fun getAutoSwitchRules(): AutoSwitchRules = AutoSwitchRules.fromValues { field ->
+        MmkvManager.decodeSettingsInt(field.key, field.default)
+    }
+
+    fun setAutoSwitchRules(rules: AutoSwitchRules) {
+        AutoSwitchRules.Field.entries.forEach { field ->
+            MmkvManager.encodeSettings(field.key, field.normalize(rules[field]))
+        }
     }
 }

@@ -640,4 +640,29 @@
         <item quantity="other">Следующая проверка через %d мин</item>
     </plurals>
 
+    <string name="auto_switch_faster">Переключено на %1$s · быстрее на %2$d мс</string>
+    <string name="auto_switch_dead">%1$s не отвечает · переключено на %2$s</string>
+    <string name="auto_switch_undo">Отменить</string>
+    <string name="switching_rules_title">Правила переключения</string>
+    <string name="switching_rules_open_summary">Дополнительно: когда менять сервер</string>
+    <string name="switching_rules_note">Работает в простом режиме, если включено «Переключать автоматически».</string>
+    <string name="switching_rules_section_dead">Сервер не отвечает</string>
+    <string name="switching_rules_section_faster">Более быстрый сервер</string>
+    <string name="switching_rules_reset">Сбросить по умолчанию</string>
+    <string name="switching_rules_dead_failures">Неудачных проверок до переключения</string>
+    <string name="switching_rules_failing_check">Интервал проверки при сбоях</string>
+    <string name="switching_rules_health_check">Интервал проверки в норме</string>
+    <string name="switching_rules_min_current_rtt">Переключать ради скорости, только если задержка выше</string>
+    <string name="switching_rules_max_percent">Задержка нового сервера не более</string>
+    <string name="switching_rules_min_gain">Минимальное улучшение</string>
+    <string name="switching_rules_confirm_runs">Лучше в тестах подряд</string>
+    <string name="switching_rules_min_gap">Минимум между переключениями ради скорости</string>
+    <string name="switching_rules_block">Не возвращаться на прежний сервер</string>
+    <string name="switching_rules_value_count">%1$d</string>
+    <string name="switching_rules_value_seconds">%1$d с</string>
+    <string name="switching_rules_value_millis">%1$d мс</string>
+    <string name="switching_rules_value_percent">%1$d%% от текущей</string>
+    <string name="switching_rules_value_minutes">%1$d мин</string>
+    <string name="switching_rules_decrease">Уменьшить: %1$s</string>
+    <string name="switching_rules_increase">Увеличить: %1$s</string>
 </resources>
