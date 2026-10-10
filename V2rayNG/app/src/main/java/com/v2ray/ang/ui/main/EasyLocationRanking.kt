@@ -18,6 +18,17 @@ internal data class EasyLocationRow(
 /** Pure ranking and quality rules for the Easy mode location picker. */
 internal object EasyLocationRanking {
     const val MAX_RANKED = 30
+
+    /**
+     * Delay to show for the selected server: the measurement taken after connecting wins when it
+     * belongs to [selectedGuid], otherwise the latest stored test result. Null when unknown.
+     */
+    fun selectedDelay(selectedGuid: String?, rows: List<EasyLocationRow>, measured: ServerDelay?): Long? {
+        if (selectedGuid.isNullOrEmpty()) return null
+        val delay = measured?.takeIf { it.guid == selectedGuid }?.delayMillis
+            ?: rows.firstOrNull { it.guid == selectedGuid }?.delayMillis
+        return delay?.takeIf { it != 0L }
+    }
     const val PAGE_SIZE = 10
 
     fun quality(delayMillis: Long): SignalQuality = when {

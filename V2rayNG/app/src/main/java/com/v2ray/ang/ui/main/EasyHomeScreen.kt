@@ -48,7 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.TrafficSpeed
 import com.v2ray.ang.ui.compose.LocalDarkTheme
 import com.v2ray.ang.ui.compose.colorConnectedDark
 import com.v2ray.ang.ui.compose.colorConnectedLight
@@ -67,9 +69,16 @@ internal fun EasyHomeScreen(
     locationState: EasyLocationState,
     isTesting: Boolean,
     testingText: String?,
+    traffic: () -> TrafficSpeed?,
+    selectedDelay: Long?,
     onAction: (MainAction) -> Unit,
 ) {
     var showLocations by rememberSaveable { mutableStateOf(false) }
+    // Live traffic is sampled only while this screen is started; the ViewModel also requires a connection.
+    LifecycleStartEffect(Unit) {
+        onAction(MainAction.SetTrafficVisible(true))
+        onStopOrDispose { onAction(MainAction.SetTrafficVisible(false)) }
+    }
     Scaffold(
         topBar = {
             Row(
@@ -108,6 +117,8 @@ internal fun EasyHomeScreen(
                 is EasyHomeState.Connected -> EasyConnect(
                     state = state,
                     autoFastest = fastestMode,
+                    traffic = traffic,
+                    selectedDelay = selectedDelay,
                     onOpenLocations = { showLocations = true },
                     onAction = onAction,
                 )
@@ -131,6 +142,8 @@ internal fun EasyHomeScreen(
 private fun ColumnScope.EasyConnect(
     state: EasyHomeState,
     autoFastest: Boolean,
+    traffic: () -> TrafficSpeed?,
+    selectedDelay: Long?,
     onOpenLocations: () -> Unit,
     onAction: (MainAction) -> Unit,
 ) {
@@ -205,6 +218,7 @@ private fun ColumnScope.EasyConnect(
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
     )
+    if (connected) TrafficLine(traffic)
     Spacer(modifier = Modifier.weight(1f))
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -240,6 +254,7 @@ private fun ColumnScope.EasyConnect(
                     )
                 }
             }
+            if (selectedDelay != null) ServerLatency(selectedDelay)
             Text(
                 text = openLabel,
                 style = MaterialTheme.typography.labelLarge,
@@ -247,6 +262,64 @@ private fun ColumnScope.EasyConnect(
                 modifier = Modifier.clearAndSetSemantics {},
             )
         }
+    }
+}
+
+@Composable
+private fun speedText(bytesPerSec: Long): String {
+    val value = TrafficSpeedFormat.format(bytesPerSec)
+    val res = when (value.unit) {
+        SpeedUnit.BYTES -> R.string.easy_speed_bytes
+        SpeedUnit.KILOBYTES -> R.string.easy_speed_kilobytes
+        SpeedUnit.MEGABYTES -> R.string.easy_speed_megabytes
+        SpeedUnit.GIGABYTES -> R.string.easy_speed_gigabytes
+    }
+    return stringResource(res, value.number)
+}
+
+/** "↓ 4.2 MB/s  ↑ 380 KB/s"; read by TalkBack as words instead of arrows. */
+@Composable
+private fun TrafficLine(trafficProvider: () -> TrafficSpeed?) {
+    val traffic = trafficProvider() ?: return
+    Spacer(modifier = Modifier.height(8.dp))
+    val down = speedText(traffic.downBytesPerSec)
+    val up = speedText(traffic.upBytesPerSec)
+    val description = stringResource(R.string.easy_traffic_description, down, up)
+    Text(
+        text = stringResource(R.string.easy_traffic_line, down, up),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+    )
+}
+
+/** RTT plus signal bars of the selected server; failed last result shows "Not reachable". */
+@Composable
+private fun ServerLatency(delayMillis: Long) {
+    val quality = EasyLocationRanking.quality(delayMillis)
+    val text = if (delayMillis > 0L) {
+        stringResource(R.string.server_test_delay_value, delayMillis)
+    } else {
+        stringResource(R.string.easy_quality_unreachable)
+    }
+    val description = if (delayMillis > 0L) {
+        stringResource(R.string.easy_latency_quality_description, text, stringResource(qualityLabel(quality)))
+    } else {
+        stringResource(R.string.easy_latency_description, text)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (quality == SignalQuality.UNREACHABLE) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SignalBars(level = EasyLocationRanking.bars(quality))
     }
 }
 

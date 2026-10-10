@@ -11,6 +11,7 @@ import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.LocateTarget
 import com.v2ray.ang.dto.RealPingResult
 import com.v2ray.ang.dto.TestServiceMessage
+import com.v2ray.ang.dto.TrafficSpeed
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.ServersCache
 import com.v2ray.ang.dto.entities.SubscriptionCache
@@ -130,12 +131,40 @@ class MainViewModel(
 
     private val initialPageReady = CompletableDeferred<Unit>()
 
+    // ---------- Live traffic ----------
+    private val trafficVisible = MutableStateFlow(false)
+
+    // Separate from uiState so a once-per-second sample recomposes only the traffic line.
+    private val _traffic = MutableStateFlow<TrafficSpeed?>(null)
+    val traffic: StateFlow<TrafficSpeed?> = _traffic.asStateFlow()
+
+    /** GUID that the in-flight current-server measurement belongs to. */
+    private var currentTestGuid: String? = null
+
     // ---------- Service events ----------
     init {
         collectServiceEvents()
         collectSelectedServerName()
         collectEasyLocations()
+        collectTrafficRequests()
         setupGroupTab()
+    }
+
+    /**
+     * Keeps the daemon's traffic sampler on only while Easy home is visible and connected, so a
+     * hidden UI never wakes the device once per second.
+     */
+    private fun collectTrafficRequests() {
+        viewModelScope.launch {
+            combine(trafficVisible, uiState.map { it.isRunning && it.easyMode }) { visible, active ->
+                visible && active
+            }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    if (!enabled) _traffic.value = null
+                    dataSource.setTrafficStatsEnabled(enabled)
+                }
+        }
     }
 
     /**
@@ -205,6 +234,8 @@ class MainViewModel(
             MainServiceEvent.StateStartSuccess -> {
                 toastSuccess(R.string.toast_services_success)
                 updateRunningState(true)
+                // Easy home shows the connected server's RTT; Pro mode keeps its manual test.
+                if (uiState.value.easyMode) testCurrentServerRealPing()
             }
 
             is MainServiceEvent.StateStartFailure -> {
@@ -219,7 +250,8 @@ class MainViewModel(
             MainServiceEvent.StateStopSuccess -> updateRunningState(false)
             is MainServiceEvent.MeasureDelayResult -> {
                 if (!uiState.value.isRunning || !testRequests.completeCurrent(event.requestId)) return
-                _uiState.update { it.copy(isTesting = testRequests.isTesting, status = MainStatus.ConnectionTest(event.result)) }
+                val testGuid = currentTestGuid
+                _uiState.update { MainStateReducer.measured(it, testGuid, event.result, testRequests.isTesting) }
             }
 
             is MainServiceEvent.MeasureConfigSuccess -> {
@@ -246,6 +278,11 @@ class MainViewModel(
 
             is MainServiceEvent.MeasureDelayCancelled -> {
                 if (testRequests.completeCurrent(event.requestId)) resetTestStatus()
+            }
+
+            is MainServiceEvent.TrafficStats -> {
+                val speed = TrafficSpeed(event.downBytesPerSec, event.upBytesPerSec)
+                _traffic.update { MainStateReducer.trafficSample(it, uiState.value.isRunning, speed) }
             }
 
             is MainServiceEvent.MeasureConfigCancelled -> {
@@ -398,6 +435,8 @@ class MainViewModel(
                 val bitmap = dataSource.share2QRCode(action.guid)
                 _uiState.update { it.copy(shareQRCodeBitmap = bitmap) }
             }
+
+            is MainAction.SetTrafficVisible -> trafficVisible.value = action.visible
 
             is MainAction.SetEasyMode -> {
                 dataSource.setEasyMode(action.enabled)
@@ -969,12 +1008,7 @@ class MainViewModel(
             serverGuids = if (keywordFilter.isNotEmpty()) serverGuids else emptyList(),
             onlyTcp = onlyTcp
         )
-        _uiState.update {
-            it.copy(
-                isTesting = true,
-                status = MainStatus.Testing
-            )
-        }
+        _uiState.update { MainStateReducer.bulkTestStarted(it) }
         bulkTestJob = viewModelScope.launch {
             withContext(ioDispatcher) {
                 dataSource.clearAllTestDelayResults(serverGuids)
@@ -1001,6 +1035,7 @@ class MainViewModel(
     fun testCurrentServerRealPing() {
         if (!uiState.value.isRunning) return
         val requestId = testRequests.beginCurrent()
+        currentTestGuid = uiState.value.selectedGuid
         _uiState.update { it.copy(isTesting = true, status = MainStatus.Testing) }
         dataSource.testCurrentServerRealPing(requestId)
     }
@@ -1038,14 +1073,8 @@ class MainViewModel(
     // ---------- Running state ----------
     private fun updateRunningState(running: Boolean, clearTestingText: Boolean = true) {
         if (!running || clearTestingText) testRequests.invalidateCurrent()
-        _uiState.update { state ->
-            state.copy(
-                isRunning = running,
-                isTesting = testRequests.isTesting,
-                status = if (!clearTestingText && state.isRunning == running) state.status
-                else if (running) MainStatus.Connected else MainStatus.Disconnected
-            )
-        }
+        _uiState.update { MainStateReducer.running(it, running, testRequests.isTesting, clearTestingText) }
+        _traffic.update { MainStateReducer.trafficAfterRunning(it, running) }
     }
 
     override fun onCleared() {

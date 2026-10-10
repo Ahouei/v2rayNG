@@ -49,6 +49,11 @@ fun MainScreen(
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
     if (uiState.easyMode) {
         val locationState by mainViewModel.easyLocationState.collectAsStateWithLifecycle()
+        // Not read here: only TrafficLine reads it, so per-second samples skip this scope.
+        val trafficState = mainViewModel.traffic.collectAsStateWithLifecycle()
+        val selectedDelay = remember(uiState.selectedGuid, locationState.rows, uiState.currentServerDelay) {
+            EasyLocationRanking.selectedDelay(uiState.selectedGuid, locationState.rows, uiState.currentServerDelay)
+        }
         val testingText = when (uiState.status) {
             MainStatus.Testing, is MainStatus.TestProgress -> mainViewModel.formatStatus(uiState.status)
             else -> null
@@ -60,6 +65,8 @@ fun MainScreen(
             locationState = locationState,
             isTesting = uiState.isTesting,
             testingText = testingText,
+            traffic = { trafficState.value },
+            selectedDelay = selectedDelay,
             onAction = onAction,
         )
         return

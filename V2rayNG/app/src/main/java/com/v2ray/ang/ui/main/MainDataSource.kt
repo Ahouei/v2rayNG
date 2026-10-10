@@ -65,6 +65,9 @@ interface MainDataSource : Closeable {
     fun cancelAllPing()
     fun testCurrentServerRealPing(requestId: String)
 
+    /** Asks the running daemon to start or stop sending live traffic samples. */
+    fun setTrafficStatsEnabled(enabled: Boolean)
+
     fun syncSubscriptions()
     fun initAssets()
 }

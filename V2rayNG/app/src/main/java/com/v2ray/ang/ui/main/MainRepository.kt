@@ -12,6 +12,7 @@ import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.RealPingResult
 import com.v2ray.ang.dto.SubscriptionUpdateResult
 import com.v2ray.ang.dto.TestServiceMessage
+import com.v2ray.ang.dto.TrafficSpeed
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.ServerAffiliationInfo
 import com.v2ray.ang.dto.entities.SubscriptionCache
@@ -73,6 +74,9 @@ class MainRepository(
                     requestId
                 )
                 AppConfig.MSG_MEASURE_CONFIG_CANCEL -> MainServiceEvent.MeasureConfigCancelled(requestId)
+                AppConfig.MSG_TRAFFIC_STATS -> safeIntent
+                    .serializable<TrafficSpeed>("content")
+                    ?.let { MainServiceEvent.TrafficStats(it.downBytesPerSec, it.upBytesPerSec) }
 
                 else -> null
             }
@@ -238,6 +242,14 @@ class MainRepository(
         MessageHelper.sendMsg2ServiceForResult(app, AppConfig.MSG_MEASURE_DELAY, requestId) { handled ->
             if (!handled) mainServiceEventChannel.trySend(MainServiceEvent.MeasureDelayCancelled(requestId))
         }
+    }
+
+    override fun setTrafficStatsEnabled(enabled: Boolean) {
+        MessageHelper.sendMsg2Service(
+            app,
+            if (enabled) AppConfig.MSG_TRAFFIC_STATS_START else AppConfig.MSG_TRAFFIC_STATS_STOP,
+            "",
+        )
     }
 
     override fun syncSubscriptions() {

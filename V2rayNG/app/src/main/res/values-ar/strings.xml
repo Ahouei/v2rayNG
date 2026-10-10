@@ -600,6 +600,14 @@
     <string name="easy_quality_fair">مقبول</string>
     <string name="easy_quality_poor">ضعيف</string>
     <string name="easy_quality_unreachable">غير قابل للوصول</string>
+    <string name="easy_speed_bytes">%1$s B/s</string>
+    <string name="easy_speed_kilobytes">%1$s KB/s</string>
+    <string name="easy_speed_megabytes">%1$s MB/s</string>
+    <string name="easy_speed_gigabytes">%1$s GB/s</string>
+    <string name="easy_traffic_line">↓ %1$s  ↑ %2$s</string>
+    <string name="easy_traffic_description">تنزيل %1$s، رفع %2$s</string>
+    <string name="easy_latency_description">زمن استجابة الاتصال %1$s</string>
+    <string name="easy_latency_quality_description">زمن استجابة الاتصال %1$s، %2$s</string>
     <string name="easy_quality_untested">لم يُختبر</string>
     <string name="easy_mode_welcome_title">مرحبًا</string>
     <string name="easy_mode_welcome_message">للبدء، أضف مفتاح الوصول الذي قدمه لك المزوّد. عادةً ما يكون رمز QR أو رابطًا.</string>

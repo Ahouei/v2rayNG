@@ -31,8 +31,14 @@ data class MainUiState(
     val easyMode: Boolean = true,
     val selectedServerName: String? = null,
     /** Persisted "Fastest" choice: when true the fastest tested server is selected automatically. */
-    val fastestMode: Boolean = true
+    val fastestMode: Boolean = true,
+    /** Live throughput of the running tunnel; null while disconnected or before the first sample. */
+    /** Latest connected-server measurement, tied to the GUID it was taken for. */
+    val currentServerDelay: ServerDelay? = null,
 )
+
+/** One delay measurement identified by server GUID: `< 0` failed, `> 0` round-trip ms. */
+data class ServerDelay(val guid: String, val delayMillis: Long)
 
 /** What the Easy mode home screen shows, derived from [MainUiState]. */
 sealed interface EasyHomeState {
@@ -104,6 +110,9 @@ sealed interface MainAction {
 
     /** Easy mode: pick a specific server and leave auto-fastest mode; handled by the activity. */
     data class SelectEasyServer(val guid: String) : MainAction
+
+    /** Easy home became visible (started) or hidden; drives live traffic sampling in the daemon. */
+    data class SetTrafficVisible(val visible: Boolean) : MainAction
 }
 
 /** One-shot MainViewModel -> MainActivity events. */

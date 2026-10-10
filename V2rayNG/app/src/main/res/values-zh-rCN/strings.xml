@@ -585,6 +585,14 @@
     <string name="easy_quality_fair">一般</string>
     <string name="easy_quality_poor">较差</string>
     <string name="easy_quality_unreachable">无法连接</string>
+    <string name="easy_speed_bytes">%1$s B/s</string>
+    <string name="easy_speed_kilobytes">%1$s KB/s</string>
+    <string name="easy_speed_megabytes">%1$s MB/s</string>
+    <string name="easy_speed_gigabytes">%1$s GB/s</string>
+    <string name="easy_traffic_line">↓ %1$s  ↑ %2$s</string>
+    <string name="easy_traffic_description">下载 %1$s，上传 %2$s</string>
+    <string name="easy_latency_description">连接延迟 %1$s</string>
+    <string name="easy_latency_quality_description">连接延迟 %1$s，%2$s</string>
     <string name="easy_quality_untested">未测试</string>
     <string name="easy_mode_welcome_title">欢迎</string>
     <string name="easy_mode_welcome_message">首先，添加服务商提供的访问密钥。通常是二维码或链接。</string>

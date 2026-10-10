@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
 import android.system.OsConstants
 import androidx.core.content.ContextCompat
 import com.v2ray.ang.AppConfig
@@ -16,6 +17,7 @@ import com.v2ray.ang.contracts.IDialerService
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.OutboundTrafficStat
+import com.v2ray.ang.dto.TrafficSpeed
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.BrowserDialerMode
 import com.v2ray.ang.extension.delay
@@ -33,7 +35,9 @@ import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
@@ -46,6 +50,8 @@ import java.net.InetSocketAddress
 
 object CoreServiceManager {
 
+    private const val TRAFFIC_STATS_INTERVAL_MS = 1000L
+
     private val coreController: CoreController = CoreNativeManager.newCoreController(CoreCallback())
     private val mMsgReceive = ReceiveMessageHandler()
     private var currentConfig: ProfileItem? = null
@@ -53,6 +59,11 @@ object CoreServiceManager {
     private var browserDialer: IDialerService? = null
     private var networkMonitor: NetworkMonitor? = null
     private val connectionTestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val trafficFanout = TrafficStatsFanout()
+
+    /** Owns the UI traffic sampler; its child is cancelled on stop, screen off and UI stop. */
+    private val trafficStatsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var trafficStatsJob: Job? = null
 
     @Volatile
     private var isReloading = false
@@ -191,6 +202,7 @@ object CoreServiceManager {
      */
     fun stopCoreLoop(): Boolean {
         connectionTestScope.coroutineContext.cancelChildren()
+        stopTrafficStats()
         val service = getService() ?: return false
 
         networkMonitor?.unregister()
@@ -216,6 +228,7 @@ object CoreServiceManager {
 
         MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_STOP_SUCCESS, "")
         NotificationManager.cancelNotification()
+        trafficFanout.reset()
 
         try {
             service.unregisterReceiver(mMsgReceive)
@@ -283,7 +296,56 @@ object CoreServiceManager {
      * Queries and resets all outbound traffic counters in one core call.
      * Go side format: tag,direction,value;tag,direction,value;
      */
-    fun queryAllOutboundTrafficStats(): List<OutboundTrafficStat> {
+    fun queryAllOutboundTrafficStats(): List<OutboundTrafficStat> =
+        trafficFanout.drain(TrafficStatsFanout.Consumer.NOTIFICATION, ::queryCoreTrafficStats)
+
+    /**
+     * Samples total tunnel throughput about once per second and sends it to the UI. Runs only
+     * while the core runs and a visible UI asked for it; independent of the speed notification.
+     */
+    @Synchronized
+    private fun startTrafficStats() {
+        if (!isRunning() || trafficStatsJob?.isActive == true) return
+        val service = getService() ?: return
+        trafficStatsJob = trafficStatsScope.launch {
+            // Discard bytes accumulated before the UI asked, so the first sample is not a spike.
+            trafficFanout.drain(TrafficStatsFanout.Consumer.UI, ::queryCoreTrafficStats)
+            var last = SystemClock.elapsedRealtime()
+            while (isActive) {
+                delay(TRAFFIC_STATS_INTERVAL_MS)
+                if (!isRunning() || isReloading) continue
+                val now = SystemClock.elapsedRealtime()
+                val (down, up) = try {
+                    TrafficStatsFanout.totals(
+                        trafficFanout.drain(TrafficStatsFanout.Consumer.UI, ::queryCoreTrafficStats)
+                    )
+                } catch (e: Exception) {
+                    LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to sample traffic stats", e)
+                    continue
+                }
+                val elapsed = now - last
+                last = now
+                ensureActive()
+                MessageHelper.sendMsg2UI(
+                    service,
+                    AppConfig.MSG_TRAFFIC_STATS,
+                    TrafficSpeed(
+                        downBytesPerSec = TrafficStatsFanout.perSecond(down, elapsed),
+                        upBytesPerSec = TrafficStatsFanout.perSecond(up, elapsed),
+                    ),
+                )
+            }
+        }
+    }
+
+    @Synchronized
+    private fun stopTrafficStats() {
+        trafficStatsJob?.cancel()
+        trafficStatsJob = null
+    }
+
+    /** Queries and resets the core counters; only [trafficFanout] may call it. */
+    private fun queryCoreTrafficStats(): List<OutboundTrafficStat> {
         // The stats manager is gone once the core stops, querying it then reaches into freed state.
         if (!isRunning()) return emptyList()
 
@@ -468,9 +530,11 @@ object CoreServiceManager {
                     }
                 }
 
-                AppConfig.MSG_UNREGISTER_CLIENT -> {
-                    // nothing to do
-                }
+                AppConfig.MSG_UNREGISTER_CLIENT -> stopTrafficStats()
+
+                AppConfig.MSG_TRAFFIC_STATS_START -> startTrafficStats()
+
+                AppConfig.MSG_TRAFFIC_STATS_STOP -> stopTrafficStats()
 
                 AppConfig.MSG_STATE_START -> {
                     // nothing to do
@@ -509,6 +573,8 @@ object CoreServiceManager {
                 Intent.ACTION_SCREEN_OFF -> {
                     LogUtil.i(AppConfig.TAG, "StartCore-Manager: Screen off")
                     NotificationManager.stopSpeedNotification()
+                    // The UI restarts sampling when it becomes visible again.
+                    stopTrafficStats()
                 }
 
                 Intent.ACTION_SCREEN_ON -> {

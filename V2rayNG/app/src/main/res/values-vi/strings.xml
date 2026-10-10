@@ -585,6 +585,14 @@
     <string name="easy_quality_fair">Trung bình</string>
     <string name="easy_quality_poor">Kém</string>
     <string name="easy_quality_unreachable">Không kết nối được</string>
+    <string name="easy_speed_bytes">%1$s B/s</string>
+    <string name="easy_speed_kilobytes">%1$s KB/s</string>
+    <string name="easy_speed_megabytes">%1$s MB/s</string>
+    <string name="easy_speed_gigabytes">%1$s GB/s</string>
+    <string name="easy_traffic_line">↓ %1$s  ↑ %2$s</string>
+    <string name="easy_traffic_description">Tải xuống %1$s, tải lên %2$s</string>
+    <string name="easy_latency_description">Độ trễ kết nối %1$s</string>
+    <string name="easy_latency_quality_description">Độ trễ kết nối %1$s, %2$s</string>
     <string name="easy_quality_untested">Chưa kiểm tra</string>
     <string name="easy_mode_welcome_title">Chào mừng</string>
     <string name="easy_mode_welcome_message">Để bắt đầu, hãy thêm khóa truy cập mà nhà cung cấp đã đưa cho bạn. Thường là mã QR hoặc một liên kết.</string>

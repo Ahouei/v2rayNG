@@ -236,7 +236,7 @@ private fun EasyLocationRowItem(
 
 /** Four bars of increasing height; decorative, the row text already states the quality. */
 @Composable
-private fun SignalBars(level: Int) {
+internal fun SignalBars(level: Int) {
     val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
@@ -257,7 +257,7 @@ private fun SignalBars(level: Int) {
     }
 }
 
-private fun qualityLabel(quality: SignalQuality): Int = when (quality) {
+internal fun qualityLabel(quality: SignalQuality): Int = when (quality) {
     SignalQuality.EXCELLENT -> R.string.easy_quality_excellent
     SignalQuality.GOOD -> R.string.easy_quality_good
     SignalQuality.FAIR -> R.string.easy_quality_fair
